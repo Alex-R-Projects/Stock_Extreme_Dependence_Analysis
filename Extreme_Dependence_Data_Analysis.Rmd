@@ -13,6 +13,7 @@ rm(list = ls())
 getwd()
 
 # Load required packages
+library(tidyverse)
 library(tidyselect)
 library(tidyquant)
 library(quantmod)
@@ -81,11 +82,10 @@ end_date <- "2023-12-31"
 
 # Define tickers for the consumer discretionary sector
 staples_tickers <- c(
-  "WMT", "KR", "HD", 
-  "MCD", "LOW", "NKE", 
-  "SBUX", "MAR", "EBAY", 
-  "BBY", "ETSY", "COST"
-)
+  "COST", "WMT", "KO",
+  "PEP", "TGT", "KR",
+  "TSN", "CLX", "STZ",
+  "MNST", "SYY", "PG")
 
 # Define tickers for the communication services sector
 communication_tickers <- c(
@@ -95,44 +95,143 @@ communication_tickers <- c(
   "VZ", "TMUS", "OMC")
 
 # Define tickers for the consumer staples sector
-staples_tickers <- c(
-  "COST", "WMT", "KO", 
-  "PEP", "TGT", "KR", 
-  "TSN", "CLX", "STZ", 
-  "MNST", "SYY", "PG")
+discretionary_tickers <- c(
+  "AMZN", "TSLA", "HD",
+  "MCD", "LOW", "NKE",
+  "SBUX", "MAR", "EBAY",
+  "BBY", "ETSY", "MGM")
 
 
-# Fetch and process consumer sector stock prices
-Consumer_staples_prices <- get_prices(
-  tickers = staples_tickers, 
-  start_date = start_date, 
-  end_date = end_date, 
-  sector_name = "Communication Services"
-)
+## Filtering and Processing stocks for Consumer Staples Sector ##
 
-# Fetch and process consumer sector stock prices
-Consumer_staples_prices <- get_prices(
-  tickers = staples_tickers, 
-  start_date = start_date, 
-  end_date = end_date, 
-  sector_name = "Consumer Discretionary"
-)
 
-# Fetch and process  sector stock prices
-Consumer_staples_prices <- get_prices(
+# Fetch and process consumer staples sector stock prices
+staples_prices <- get_prices(
   tickers = staples_tickers, 
   start_date = start_date, 
   end_date = end_date, 
   sector_name = "Consumer Staples"
 )
 
+staples_stable <- staples_prices |> 
+  dplyr::filter(date >= "2016-01-01" & date <= "2018-12-31")
+staples_stable$period <- "Stable Market"
+staples_stable <- staples_stable |> 
+  select(
+    date, period, sector, symbol, close, close_scaled, close_lgret
+  )
+
+staples_pandemic <- staples_prices |> 
+  dplyr::filter(date >= "2019-12-31" & date <= "2023-12-31")
+staples_pandemic$period <- "Pandemic and Downturn"
+staples_pandemic <- staples_pandemic |> 
+  select(
+    date, period, sector, symbol, close, close_scaled, close_lgret
+  )
+
+# Combine the periods
+staples_period <- rbind(
+  staples_stable, staples_pandemic
+) |> 
+  select(
+    date, period, sector, symbol, close, close_scaled, close_lgret
+  ) |> 
+  mutate(
+    period = factor(
+      period, 
+      ordered = TRUE,
+      levels = c("Stable Market", "Pandemic and Downturn")
+    )
+  )
+
+
+## Filtering and Processing stocks for Consumer Discretionary Sector ##
+
+discretionary_prices <- get_prices(
+  tickers = discretionary_tickers, 
+  start_date = start_date, 
+  end_date = end_date, 
+  sector_name = "Consumer Discretionary"
+)
+
+discretionary_stable <- discretionary_prices |> 
+  dplyr::filter(date >= "2016-01-01" & date <= "2018-12-31")
+discretionary_stable$period <- "Stable Market"
+discretionary_stable <- discretionary_stable |> 
+  select(
+    date, period, sector, symbol, close, close_scaled, close_lgret
+  )
+
+discretionary_pandemic <- discretionary_prices |> 
+  dplyr::filter(date >= "2019-12-31" & date <= "2023-12-31")
+discretionary_pandemic$period <- "Pandemic and Downturn"
+discretionary_pandemic <- discretionary_pandemic |> 
+  select(
+    date, period, sector, symbol, close, close_scaled, close_lgret
+  )
+
+# Combine the periods ()
+discretionary_period <- rbind(
+  discretionary_stable, discretionary_pandemic
+) |> 
+  select(
+    date, period, sector, symbol, close, close_scaled, close_lgret
+  ) |> 
+  mutate(
+    period = factor(
+      period, 
+      ordered = TRUE,
+      levels = c("Stable Market", "Pandemic and Downturn")
+    )
+  )
+
+
+# Filtering and Processing stocks for Communication Services Sector
+
+communication_prices <- get_prices(
+  tickers = communication_tickers, 
+  start_date = start_date, 
+  end_date = end_date, 
+  sector_name = "Communication Services"
+)
+
+communication_stable <- communication_prices |> 
+  dplyr::filter(date >= "2016-01-01" & date <= "2018-12-31")
+communication_stable$period <- "Stable Market"
+communication_stable <- communication_stable |> 
+  select(
+    date, period, sector, symbol, close, close_scaled, close_lgret
+  )
+
+communication_pandemic <- communication_prices |> 
+  dplyr::filter(date >= "2019-12-31" & date <= "2023-12-31")
+communication_pandemic$period <- "Pandemic and Downturn"
+communication_pandemic <- communication_pandemic |> 
+  select(
+    date, period, sector, symbol, close, close_scaled, close_lgret
+  )
+
+# Combine the periods ()
+communication_period <- rbind(
+  communication_stable, communication_pandemic
+) |> 
+  select(
+    date, period, sector, symbol, close, close_scaled, close_lgret
+  ) |> 
+  mutate(
+    period = factor(
+      period, 
+      ordered = TRUE,
+      levels = c("Stable Market", "Pandemic and Downturn")
+    )
+  )
+
 
 ```
 
+
 ***Functions for Spearman Correlation and TDC Computations/Plotting***
 ```{r}
-
-
 
 # Compute the Tail Dependence Coefficient at the 5% percentile (Probability of Extreme Losses)
 compute_tdc_matrix <- function(data, percentile = 0.05) {
@@ -210,8 +309,17 @@ plot_dep_tdc <- function(data, cor_levels, percentile = 0.05) {
   
   return(joint_dep)
 }
+
+# Wide format for stable periods, and pandemic periods for each sector
 staples_stable_wide <- get_wide_prices(staples_stable)
 staples_pandemic_wide <- get_wide_prices(staples_pandemic)
+
+discretionary_stable_wide <- get_wide_prices(discretionary_stable)
+discretionary_pandemic_wide <- get_wide_prices(discretionary_pandemic)
+
+communication_stable_wide <- get_wide_prices(communication_stable)
+communication_pandemic_wide <- get_wide_prices(communication_pandemic)
+
 
 cor_levels <- colnames(
   Hmisc::rcorr(
@@ -603,6 +711,7 @@ png(
   "copula_consumer.png", 
   width = 720, height = 720
 )
+
 plot_cop(
   staples_stable_wide, 
   "HD", "LOW", "Log Return - Stock X", "Log Return - Stock Y"
@@ -622,9 +731,10 @@ View(corr_mat)
 # Compute TDC matrix
 tdc_mat <- compute_tdc_matrix(data, percentile = percentile)
 View(tdc_mat)
+
 ```
 
-***Testing ARCH Effects, and Fitting one when necssary (Gathers residuals)***
+***Testing ARCH Effects, and Fitting one when necessary (significant P-value)***
 ```{r}
 
 
@@ -688,6 +798,66 @@ test_and_fit_garch <- function(x, lags = 5, alpha = 0.05) {
   }
 }
 
+# List of data frames for each sector
+sectors_log_returns <- list(
+  communication = communication_period,
+  discretionary = discretionary_period,
+  staples = staples_period
+)
+
+
+# Initialize an empty data frame to store the GARCH results
+garch_results <- data.frame(
+  sector = character(),
+  symbol = character(),
+  passed_garch_test = logical(),
+  residuals = I(list())  # I() is used to allow lists in the dataframe
+)
+
+# Loop through each sector
+for (sector_name in names(sectors_log_returns)) {
+  
+  # Get the data for the current sector
+  sector_data <- sectors_log_returns[[sector_name]]
+  
+  # Get the unique stock symbols in this sector
+  stock_symbols <- unique(sector_data$symbol)
+  
+  # Loop through each stock
+  for (stock in stock_symbols) {
+    
+    # Extract the log-returns (close_lgret) for the current stock
+    stock_data <- sector_data[sector_data$symbol == stock, ]
+    log_returns <- stock_data$close_lgret
+    
+    # Run the GARCH test and fit function
+    garch_result <- test_and_fit_garch(log_returns)
+    
+    # Determine if the GARCH model was fitted (i.e., ARCH effects were detected)
+    passed_garch_test <- !identical(log_returns, garch_result)
+    
+    # Add the results to the garch_results data frame
+    garch_results <- rbind(
+      garch_results,
+      data.frame(
+        sector = sector_name,
+        symbol = stock,
+        passed_garch_test = passed_garch_test,
+        residuals = I(list(garch_result))  # Store residuals (or original log-returns if no GARCH model was fitted)
+      )
+    )
+  }
+}
+
+# Print the final garch_results data frame
+print(garch_results)
+
+
+```
+
+
+***Example of Using Garch Function Above***
+```{r}
 # Let's simulate some data from a GARCH(1, 1) and check our function
 
 # Set the GARCH(1,1) model specifications with starting parameter values
@@ -697,6 +867,7 @@ spec <- ugarchspec(
   distribution.model = "norm", 
   fixed.pars = list(mu = 0, omega = 0.1, alpha1 = 0.1, beta1 = 0.8) # Specify parameter values
 )
+
 
 # Simulate n = 1000 data points from the GARCH(1,1) model
 n <- 1000
