@@ -805,13 +805,13 @@ sectors_log_returns <- list(
   staples = staples_period
 )
 
-
 # Initialize an empty data frame to store the GARCH results
 garch_results <- data.frame(
+  date = as.Date(character()),
   sector = character(),
   symbol = character(),
-  passed_garch_test = logical(),
-  residuals = I(list())  # I() is used to allow lists in the dataframe
+  residual = numeric(),
+  passed_garch_test = logical()
 )
 
 # Loop through each sector
@@ -826,31 +826,36 @@ for (sector_name in names(sectors_log_returns)) {
   # Loop through each stock
   for (stock in stock_symbols) {
     
-    # Extract the log-returns (close_lgret) for the current stock
+    # Extract the log-returns and dates for the current stock
     stock_data <- sector_data[sector_data$symbol == stock, ]
+    dates <- stock_data$date  # Assuming 'date' column exists
     log_returns <- stock_data$close_lgret
     
     # Run the GARCH test and fit function
     garch_result <- test_and_fit_garch(log_returns)
     
-    # Determine if the GARCH model was fitted (i.e., ARCH effects were detected)
+    # Determine if the GARCH model was fitted
     passed_garch_test <- !identical(log_returns, garch_result)
     
-    # Add the results to the garch_results data frame
-    garch_results <- rbind(
-      garch_results,
-      data.frame(
-        sector = sector_name,
-        symbol = stock,
-        passed_garch_test = passed_garch_test,
-        residuals = I(list(garch_result))  # Store residuals (or original log-returns if no GARCH model was fitted)
+    # Add each entry as a separate row to the garch_results data frame
+    for (i in seq_along(dates)) {
+      garch_results <- rbind(
+        garch_results,
+        data.frame(
+          date = dates[i],
+          sector = sector_name,
+          symbol = stock,
+          residual = garch_result[i],
+          passed_garch_test = passed_garch_test
+        )
       )
-    )
+    }
   }
 }
 
-# Print the final garch_results data frame
-print(garch_results)
+# head(garch_results) 
+
+# META, NFLX, TGT are the only symbols that did not pass the GARCH Test, because of this the data frame, 'garch_results' will keep the log returns for those symbols.
 
 
 ```
