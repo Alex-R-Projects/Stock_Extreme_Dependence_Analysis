@@ -970,186 +970,269 @@ garch_staples_pandemic_wide <- get_wide_residuals(garch_staples_pandemic)
 
 ***Creating Matrix Plots for Communication Services***
 ```{r}
-# We are going to now build matrix plots to compare the dependence with in each stock. 
 
-# The measures we are going to be using are MI (Mutual Information), Spearman Corelation, TDC (Tail-Dependent Coefficient at the 5% percentile)
 
-# Helper function to reshape a matrix into a long format for ggplot
+library(viridis)  # for colorblind-friendly palette
+
+# Define the order of stock symbols
+communication_tickers <- c("META", "GOOGL", "NFLX", "DIS", "WBD", "PARA", "CMCSA", "EA", "T", "VZ", "TMUS", "OMC")
+
+# Helper function to reshape a matrix into a long format for ggplot, keeping only the lower triangle
 reshape_for_ggplot <- function(matrix, names) {
   as.data.frame(matrix) %>%
     rownames_to_column(var = "Var1") %>%
     pivot_longer(-Var1, names_to = "Var2", values_to = "value") %>%
-    mutate(Var1 = factor(Var1, levels = names),
-           Var2 = factor(Var2, levels = names)) %>%
+    mutate(
+      Var1 = factor(Var1, levels = names, ordered = TRUE),
+      Var2 = factor(Var2, levels = names, ordered = TRUE)
+    ) %>%
     filter(as.numeric(Var1) > as.numeric(Var2))  # Keep only lower triangle
 }
 
 # Function to plot the Spearman Correlation
-# Correlation Values will appear within each tile
 plot_spearman_correlation_ggplot <- function(wide_data, title) {
   # Calculate Spearman correlation matrix
   spearman_corr <- cor(wide_data, method = "spearman", use = "pairwise.complete.obs")
   
   # Reshape for ggplot
-  corr_data <- reshape_for_ggplot(spearman_corr, colnames(wide_data))
+  corr_data <- reshape_for_ggplot(spearman_corr, communication_tickers)
   
   # Plot with values inside the tiles
   ggplot(corr_data, aes(x = Var1, y = Var2, fill = value)) +
     geom_tile(color = "white") +
     geom_text(aes(label = round(value, 2)), color = "black", size = 3) +  # Display correlation values
-    scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0,
-                         limit = c(-1, 1), space = "Lab", name = "Spearman\nCorrelation") +
+    scale_fill_viridis_c(option = "C", limits = c(-1, 1), name = "Spearman\nCorrelation") +
     theme_minimal() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    labs(title = title, x = "", y = "")
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      axis.text.y = element_text(size = 10)
+    ) +
+    labs(title = title, x = "", y = "") +
+    coord_fixed()
 }
 
-# Spearman Correlation Plots 
-plot_spearman_correlation_ggplot(garch_communication_stable_wide, "Spearman Correlation for the Communication Services Sector During Stable Period")
-plot_spearman_correlation_ggplot(garch_communication_pandemic_wide, "Spearman Correlation for the Communication Services Sector During Pandemic Period")
-
-
-#####################################################
-
-# Mutual Information Plots for the Communication Services
 # Function to compute Mutual Information matrix for a wide-format data frame
 compute_mutual_information_matrix <- function(wide_data) {
-  # Discretize each column of the data
   discretized_data <- discretize(wide_data)
   n <- ncol(discretized_data)
-  
-  # Initialize an empty matrix to store mutual information values
   mi_matrix <- matrix(0, n, n)
   
-  # Compute mutual information for each pair of columns
   for (i in 1:n) {
     for (j in 1:n) {
       mi_matrix[i, j] <- mutinformation(discretized_data[, i], discretized_data[, j])
     }
   }
   
-  # Set row and column names for the matrix
   colnames(mi_matrix) <- colnames(wide_data)
   rownames(mi_matrix) <- colnames(wide_data)
   
   return(mi_matrix)
 }
 
-# Helper function to reshape the MI matrix for ggplot2
-reshape_for_ggplot <- function(matrix) {
-  as.data.frame(matrix) %>%
-    rownames_to_column(var = "Var1") %>%
-    pivot_longer(-Var1, names_to = "Var2", values_to = "value") %>%
-    mutate(Var1 = factor(Var1, levels = colnames(matrix)),
-           Var2 = factor(Var2, levels = colnames(matrix))) %>%
-    filter(as.numeric(Var1) > as.numeric(Var2))  # Keep only lower triangle
-}
-
 # Plotting function for Mutual Information matrix
 plot_mutual_information_matrix <- function(wide_data, title) {
-  # Step 1: Compute the mutual information matrix
   mi_matrix <- compute_mutual_information_matrix(wide_data)
+  mi_data <- reshape_for_ggplot(mi_matrix, communication_tickers)
   
-  # Step 2: Reshape for ggplot2
-  mi_data <- reshape_for_ggplot(mi_matrix)
-  
-  # Step 3: Create the plot
   ggplot(mi_data, aes(x = Var1, y = Var2, fill = value)) +
     geom_tile(color = "white") +
     geom_text(aes(label = round(value, 2)), color = "black", size = 3) +  # Display MI values
-    scale_fill_gradient(low = "white", high = "darkgreen", name = "Mutual\nInformation") +
+    scale_fill_viridis_c(option = "C", name = "Mutual\nInformation") +
     theme_minimal() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    labs(title = title, x = "", y = "")
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      axis.text.y = element_text(size = 10)
+    ) +
+    labs(title = title, x = "", y = "") +
+    coord_fixed()
 }
 
-plot_mutual_information_matrix(garch_communication_stable_wide, "Mutual Information for Communication Services Sector During Stable Period")
-plot_mutual_information_matrix(garch_communication_pandemic_wide, "Mutual Information for Communication Services Sector During Pandemic Period ")
-
-#############################################################
-
-
-# Function to compute the Tail Dependence Coefficient (TDC) matrix for the lower tail
+# Function to compute Tail Dependence Coefficient (TDC) matrix
 compute_tdc_matrix <- function(data, percentile = 0.05) {
   n <- nrow(data)
   percentile_value <- quantile(data[[1]], probs = percentile)
-  
-  # Find the number of observations below the percentile value
   k <- sum(data[[1]] <= percentile_value)
-  
-  # Compute the TDC matrix for the lower tail using Empirical Tail Dependence Coefficient (EmpTC)
   tdc_mat <- FRAPO::tdc(data, method = "EmpTC", lower = TRUE, k = k)
-  
   return(tdc_mat)
 }
 
 # Function to plot Tail Dependence Coefficient (TDC) matrix with only the lower triangle
-plot_tdc_mat <- function(data, cor_levels, percentile = 0.05) {
-  
-  # Compute the TDC matrix
+plot_tdc_mat <- function(data, title, percentile = 0.05) {
   tdc_mat <- compute_tdc_matrix(data, percentile = percentile)
-    
-  # Set upper triangle to NA to display only the lower triangle
-  tdc_mat[upper.tri(tdc_mat, diag = TRUE)] <- NA
+  tdc_mat[upper.tri(tdc_mat)] <- NA
+  tdc_long <- reshape_for_ggplot(tdc_mat, communication_tickers)
   
-  # Convert the matrix to long format for ggplot2
-  tdc_long <- reshape2::melt(tdc_mat, na.rm = TRUE) %>% 
-    mutate(
-      Var1 = factor(Var1, levels = cor_levels, ordered = TRUE),
-      Var2 = factor(Var2, levels = cor_levels, ordered = TRUE)
-    ) %>%
-    filter(!is.na(value))  # Remove NA values for cleaner plot
-  
-  # Plotting the TDC matrix using ggplot2
-  tdc_plot <- ggplot(
-    tdc_long, 
-    aes(
-      x = Var1, y = Var2, 
-      fill = value, 
-      label = ifelse(!is.na(value), round(value, 2), "")
-    )
-  ) +
-    geom_tile(color = "white") + 
-    geom_text(color = "black", size = 3, na.rm = TRUE) +
-    scale_x_discrete(expand = c(0,0)) +
-    scale_y_discrete(limits = rev(levels(tdc_long$Var2)), expand = c(0,0)) +
-    scale_fill_distiller(
-      palette = "RdBu", 
-      direction = 1, 
-      limits = c(0, 1), 
-      na.value = "transparent", 
-      name = "TDC", 
-      guide = guide_colourbar(
-        barwidth = 15, barheight = 0.5
-      )
-    ) + 
-    labs(title = "Tail Dependence Coefficient (TDC) Matrix") +
+  ggplot(tdc_long, aes(x = Var1, y = Var2, fill = value)) +
+    geom_tile(color = "white") +
+    geom_text(aes(label = round(value, 2)), color = "black", size = 3, na.rm = TRUE) +
+    scale_fill_viridis_c(option = "C", limits = c(0, 1), name = "TDC") +
     theme_minimal() +
     theme(
-      axis.title = element_blank(),
-      axis.text.x = element_text(
-        angle = 90, vjust = 0.5, hjust = 1, size = 12
-      ),
-      axis.text.y = element_text(size = 12),
-      legend.position = "bottom",
-      plot.title = element_text(hjust = 0.5, size = 14),
-      legend.text = element_text(size = 12),
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      axis.text.y = element_text(size = 10),
+      legend.position = "bottom"
+    ) +
+    labs(title = title, x = "", y = "") +
+    coord_fixed()
+}
+
+# Example usage
+plot_spearman_correlation_ggplot(garch_communication_stable_wide, "Spearman Correlation for Communication Services (Stable Period)")
+plot_spearman_correlation_ggplot(garch_communication_pandemic_wide, "Spearman Correlation for Communication Services (Pandemic Period)")
+
+plot_mutual_information_matrix(garch_communication_stable_wide, "Mutual Information for Communication Services (Stable Period)")
+plot_mutual_information_matrix(garch_communication_pandemic_wide, "Mutual Information for Communication Services (Pandemic Period)")
+
+plot_tdc_mat(garch_communication_stable_wide, "TDC for Communication Services (Stable Period)")
+plot_tdc_mat(garch_communication_pandemic_wide, "TDC for Communication Services (Pandemic Period)")
+
+
+
+```
+
+
+
+```{r}
+# TDC plots for the Consumer Discretionary Sector
+cor_levels_discretionary_stable <- colnames(garch_discretionary_stable_wide)
+plot_tdc_mat(garch_discretionary_stable_wide, cor_levels = cor_levels_discretionary_stable, percentile = 0.05)
+
+cor_levels_discretionary_pandemic <- colnames(garch_discretionary_pandemic_wide)
+plot_tdc_mat(garch_discretionary_pandemic_wide, cor_levels = cor_levels_discretionary_pandemic, percentile = 0.05)
+
+
+# TDC plots for the Consumer Staples Sector
+cor_levels_staples_stable <- colnames(garch_staples_stable_wide)
+plot_tdc_mat(garch_staples_stable_wide, cor_levels = cor_levels_staples_stable, percentile = 0.05)
+
+cor_levels_staples_pandemic <- colnames(garch_staples_pandemic_wide)
+plot_tdc_mat(garch_staples_pandemic_wide, cor_levels = cor_levels_staples_pandemic, percentile = 0.05)
+```
+
+***Calculating Expected Shortfall at the 5% percentile***
+```{r}
+
+# Function to calculate Expected Shortfall at 95% confidence level (5% quantile)
+calculate_es <- function(residuals, quantile = 0.05) {
+  threshold <- quantile(residuals, probs = quantile, na.rm = TRUE)
+  es <- abs(mean(residuals[residuals <= threshold], na.rm = TRUE))  # Absolute value of ES
+  return(es)
+}
+
+# Function to compute the ES matrix with only the lower triangle populated
+compute_es_matrix <- function(garch_residuals, quantile = 0.05) {
+  asset_names <- colnames(garch_residuals)
+  n <- ncol(garch_residuals)
+  es_matrix <- matrix(NA, n, n)
+  colnames(es_matrix) <- asset_names
+  rownames(es_matrix) <- asset_names
+  
+  for (i in 1:n) {
+    es_i <- calculate_es(garch_residuals[, i], quantile)
+    for (j in 1:i) {  # Populate only lower triangle (including diagonal)
+      es_matrix[i, j] <- es_i
+      es_matrix[j, i] <- es_i  # Make it symmetric if needed
+    }
+  }
+  return(es_matrix)
+}
+
+# Function to plot only the lower triangle of the ES matrix using ggplot2
+plot_es_matrix <- function(es_matrix) {
+  # Convert matrix to long format for ggplot2
+  es_long <- melt(es_matrix, na.rm = TRUE) %>%
+    mutate(
+      Var1 = factor(Var1, levels = rownames(es_matrix), ordered = TRUE),
+      Var2 = factor(Var2, levels = colnames(es_matrix), ordered = TRUE)
+    ) %>%
+    filter(as.numeric(Var1) >= as.numeric(Var2))  # Keep only lower triangle
+  
+  # Plotting the ES matrix
+  ggplot(es_long, aes(x = Var1, y = Var2, fill = value)) +
+    geom_tile(color = "white") +
+    geom_text(aes(label = round(value, 4)), color = "black", size = 3, na.rm = TRUE) +
+    scale_fill_gradient2(
+      low = "blue", mid = "white", high = "red", 
+      midpoint = median(es_long$value, na.rm = TRUE), 
+      limit = c(min(es_long$value, na.rm = TRUE), max(es_long$value, na.rm = TRUE)), 
+      name = "Expected Shortfall\n(95% Confidence)"
+    ) +
+    labs(title = "Expected Shortfall (ES) Matrix at 5% Percentile") +
+    theme_minimal() +
+    theme(
+      axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = 10),
+      axis.text.y = element_text(size = 10),
       panel.grid.major = element_blank(),
       panel.grid.minor = element_blank()
     ) +
     coord_fixed()
-  
-  return(tdc_plot)
 }
 
+# Example usage with garch_communication_stable_wide
+# Assuming `garch_communication_stable_wide` is a data frame with GARCH residuals in wide format
+es_matrix <- compute_es_matrix(garch_communication_stable_wide, quantile = 0.05)
+plot_es_matrix(es_matrix)
 
-# Example for the communication stable GARCH data frame
-cor_levels_communication <- colnames(garch_communication_stable_wide)
-plot_tdc_mat(garch_communication_stable_wide, cor_levels = cor_levels_communication, percentile = 0.05)
 
-# Example for the communication stable GARCH data frame
-cor_levels_communication <- colnames(garch_communication_pandemic_wide)
-plot_tdc_mat(garch_communication_pandemic_wide, cor_levels = cor_levels_communication, percentile = 0.05)
+# Function to calculate Value at Risk at 95% confidence level (5% quantile)
+calculate_var <- function(residuals, quantile = 0.05) {
+  var <- quantile(residuals, probs = quantile, na.rm = TRUE)
+  return(abs(var))  # Use absolute value to represent risk level as positive
+}
+
+# Function to compute the VaR matrix with only the lower triangle populated
+compute_var_matrix <- function(garch_residuals, quantile = 0.05) {
+  asset_names <- colnames(garch_residuals)
+  n <- ncol(garch_residuals)
+  var_matrix <- matrix(NA, n, n)
+  colnames(var_matrix) <- asset_names
+  rownames(var_matrix) <- asset_names
+  
+  for (i in 1:n) {
+    var_i <- calculate_var(garch_residuals[, i], quantile)
+    for (j in 1:i) {  # Populate only lower triangle (including diagonal)
+      var_matrix[i, j] <- var_i
+      var_matrix[j, i] <- var_i  # Make it symmetric if needed
+    }
+  }
+  return(var_matrix)
+}
+
+# Function to plot only the lower triangle of the VaR matrix using ggplot2
+plot_var_matrix <- function(var_matrix) {
+  # Convert matrix to long format for ggplot2
+  var_long <- melt(var_matrix, na.rm = TRUE) %>%
+    mutate(
+      Var1 = factor(Var1, levels = rownames(var_matrix), ordered = TRUE),
+      Var2 = factor(Var2, levels = colnames(var_matrix), ordered = TRUE)
+    ) %>%
+    filter(as.numeric(Var1) >= as.numeric(Var2))  # Keep only lower triangle
+  
+  # Plotting the VaR matrix
+  ggplot(var_long, aes(x = Var1, y = Var2, fill = value)) +
+    geom_tile(color = "white") +
+    geom_text(aes(label = round(value, 4)), color = "black", size = 3, na.rm = TRUE) +
+    scale_fill_gradient2(
+      low = "blue", mid = "white", high = "red", 
+      midpoint = median(var_long$value, na.rm = TRUE), 
+      limit = c(min(var_long$value, na.rm = TRUE), max(var_long$value, na.rm = TRUE)), 
+      name = "Value at Risk\n(95% Confidence)"
+    ) +
+    labs(title = "Value at Risk (VaR) Matrix at 95% Confidence Level") +
+    theme_minimal() +
+    theme(
+      axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = 10),
+      axis.text.y = element_text(size = 10),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank()
+    ) +
+    coord_fixed()
+}
+
+# Example usage with garch_communication_stable_wide
+# Assuming `garch_communication_stable_wide` is a data frame with GARCH residuals in wide format
+var_matrix <- compute_var_matrix(garch_communication_stable_wide, quantile = 0.05)
+plot_var_matrix(var_matrix)
 
 ```
 
