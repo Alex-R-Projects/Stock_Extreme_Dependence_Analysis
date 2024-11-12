@@ -1234,5 +1234,8 @@ plot_var_matrix <- function(var_matrix) {
 var_matrix <- compute_var_matrix(garch_communication_stable_wide, quantile = 0.05)
 plot_var_matrix(var_matrix)
 
+
+# Need to change the plot for the JOINT VaR, right now I'm only computing individual columns
+
 ```
 
