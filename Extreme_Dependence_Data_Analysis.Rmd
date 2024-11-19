@@ -1076,7 +1076,7 @@ plot_tdc_mat <- function(data, title, percentile = 0.05) {
     coord_fixed()
 }
 
-# Example usage
+# Outputting the all of the plots for the communication services sector
 plot_spearman_correlation_ggplot(garch_communication_stable_wide, "Spearman Correlation for Communication Services (Stable Period)")
 plot_spearman_correlation_ggplot(garch_communication_pandemic_wide, "Spearman Correlation for Communication Services (Pandemic Period)")
 
@@ -1091,23 +1091,39 @@ plot_tdc_mat(garch_communication_pandemic_wide, "TDC for Communication Services 
 ```
 
 
-
+***Plots for the Consumer Discretionary Sector***
 ```{r}
-# TDC plots for the Consumer Discretionary Sector
-cor_levels_discretionary_stable <- colnames(garch_discretionary_stable_wide)
-plot_tdc_mat(garch_discretionary_stable_wide, cor_levels = cor_levels_discretionary_stable, percentile = 0.05)
+# Spearman Correlation for the Consumer Discretionary Sector
 
-cor_levels_discretionary_pandemic <- colnames(garch_discretionary_pandemic_wide)
-plot_tdc_mat(garch_discretionary_pandemic_wide, cor_levels = cor_levels_discretionary_pandemic, percentile = 0.05)
+plot_spearman_correlation_ggplot(garch_communication_stable_wide, "Spearman Correlation for Consumer Discretionary (Stable Period)")
+plot_spearman_correlation_ggplot(garch_communication_pandemic_wide, "Spearman Correlation for Consumer Discretionary (Pandemic Period)")
+
+plot_mutual_information_matrix(garch_discretionary_stable_wide, "Mutual Information for Consumer Discretionary (Stable Period)")
+plot_mutual_information_matrix(garch_discretionary_pandemic_wide, "Mutual Information for Consumer Discretionary (Pandemic Period)")
+
+plot_tdc_mat(garch_discretionary_stable_wide, "TDC for Consumer Discretionary (Stable Period)")
+plot_tdc_mat(garch_discretionary_pandemic_wide, "TDC for Consumer Discretionary (Pandemic Period)")
 
 
-# TDC plots for the Consumer Staples Sector
-cor_levels_staples_stable <- colnames(garch_staples_stable_wide)
-plot_tdc_mat(garch_staples_stable_wide, cor_levels = cor_levels_staples_stable, percentile = 0.05)
-
-cor_levels_staples_pandemic <- colnames(garch_staples_pandemic_wide)
-plot_tdc_mat(garch_staples_pandemic_wide, cor_levels = cor_levels_staples_pandemic, percentile = 0.05)
 ```
+
+
+***Plots for the Consumer Staples Sector***
+```{r}
+
+# Spearman Correlation for the Consumer Staples Sector
+
+plot_spearman_correlation_ggplot(garch_staples_stable_wide, "Spearman Correlation for Consumer Staples (Stable Period)")
+plot_spearman_correlation_ggplot(garch_staples_pandemic_wide, "Spearman Correlation for Consumer Staples (Pandemic Period)")
+
+plot_mutual_information_matrix(garch_staples_stable_wide, "Mutual Information for Consumer Staples (Stable Period)")
+plot_mutual_information_matrix(garch_staples_pandemic_wide, "Mutual Information for Consumer Staples (Pandemic Period)")
+
+plot_tdc_mat(garch_staples_stable_wide, "TDC for Consumer Staples (Stable Period)")
+plot_tdc_mat(garch_staples_pandemic_wide, "TDC for Consumer Staples (Pandemic Period)")
+
+```
+
 
 ***Calculating Expected Shortfall at the 5% percentile***
 ```{r}
@@ -1238,4 +1254,80 @@ plot_var_matrix(var_matrix)
 # Need to change the plot for the JOINT VaR, right now I'm only computing individual columns
 
 ```
+
+
+
+
+
+
+***TDC Cross-Sector Matrix Plot***
+```{r}
+
+# Here we will plot another matrix plot, but using the communication services sector VS consumer discretionary
+
+
+# Function to compute Cross-Sector TDC matrix during STABLE MARKET
+# Function to compute Cross-Sector TDC matrix
+compute_cross_sector_tdc_matrix <- function(communication_data, discretionary_data, percentile = 0.05) {
+  n_comm <- ncol(communication_data)
+  n_disc <- ncol(discretionary_data)
+  cross_tdc_mat <- matrix(NA, n_comm, n_disc)
+  
+  for (i in 1:n_comm) {
+    for (j in 1:n_disc) {
+      # Compute pseudo-observations for each pair
+      u_comm <- pobs(communication_data[, i])
+      u_disc <- pobs(discretionary_data[, j])
+      
+      # Fit a copula and extract lower tail dependence
+      copula_model <- BiCopSelect(u_comm, u_disc, method = "itau")
+      if (!is.null(copula_model$par2)) {
+        cross_tdc_mat[i, j] <- copula_model$par2  # Lower tail dependence
+      } else {
+        cross_tdc_mat[i, j] <- NA  # If no valid par2, set NA
+      }
+    }
+  }
+  
+  rownames(cross_tdc_mat) <- communication_tickers
+  colnames(cross_tdc_mat) <- discretionary_tickers
+  return(cross_tdc_mat)
+}
+
+# Example Usage
+# Assuming `garch_communication_stable_wide` and `garch_discretionary_stable_wide` are the wide-format data frames
+cross_tdc_matrix <- compute_cross_sector_tdc_matrix(garch_communication_stable_wide, garch_discretionary_stable_wide, percentile = 0.05)
+
+# Plotting Function
+plot_cross_sector_tdc_mat <- function(tdc_matrix, title) {
+  tdc_long <- as.data.frame(tdc_matrix) %>%
+    rownames_to_column(var = "Communication") %>%
+    pivot_longer(-Communication, names_to = "Discretionary", values_to = "value") %>%
+    mutate(
+      Communication = factor(Communication, levels = communication_tickers, ordered = TRUE),
+      Discretionary = factor(Discretionary, levels = discretionary_tickers, ordered = TRUE)
+    )
+  
+  ggplot(tdc_long, aes(x = Discretionary, y = Communication, fill = value)) +
+    geom_tile(color = "white") +
+    geom_text(aes(label = round(value, 2)), color = "black", size = 3, na.rm = TRUE) +
+    scale_fill_viridis_c(option = "mako", limits = c(0, 1), name = "TDC") +
+    theme_minimal() +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      axis.text.y = element_text(size = 10),
+      legend.position = "bottom"
+    ) +
+    labs(title = title, x = "Consumer Discretionary", y = "Communication Services") +
+    coord_fixed()
+}
+
+# Plotting the Cross-Sector TDC Matrix
+plot_cross_sector_tdc_mat(cross_tdc_matrix, "Cross-Sector TDC Matrix (Communication vs. Discretionary)")
+
+
+
+
+```
+
 
