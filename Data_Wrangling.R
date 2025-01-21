@@ -1,42 +1,8 @@
----
-title: "Extreme Dependence Data Analysis"
-author: "Alex Reyes"
-date: "2024-10-08"
-output: html_document
----
+################################################################################
 
-***Cleaning the Workspace/Loading Required libraries***
-```{r}
-# Clean the workspace
-rm(list = ls())
+# This section is covering the data wrangling for working with LOG RETURNS
 
-getwd()
 
-# Load required packages
-library(tidyverse)
-library(tidyselect)
-library(tidyquant)
-library(quantmod)
-library(timetk)
-library(copula)
-library(VineCopula)
-library(cowplot)
-library(infotheo)
-library(GGally)
-library(nortest)
-library(car)
-library(knitr)
-library(kableExtra)
-library(pander)
-library(patchwork)
-library(rugarch)
-library(FinTS) 
-library(reshape2)
-library(viridis)
-```
-
-***Functions for Stock Closing Prices/Log Returns/Wide-Format for Copula Analysis/plotting prices and log returns***
-```{r}
 # Create functions for tick marks
 number_ticks <- function(n) { 
   function(limits) pretty(limits, n) 
@@ -228,14 +194,15 @@ communication_period <- rbind(
   )
 
 
-```
 
 
-***Testing ARCH Effects, and Fitting one when necessary (significant P-value)***
-```{r}
 
 
-#' Test for ARCH effects and fit a GARCH(1,1) model if necessary
+################################################################################
+
+# This section is covering the data wrangling for working with GARCH Residuals
+
+#' Test for ARCH effects and fit a GARCH(1,1) model IF necessary
 #'
 #' This function takes a time series of log-returns (numerical vector) as input, 
 #' performs an ARCH test using the FinTS::ArchTest function, and checks whether 
@@ -351,53 +318,7 @@ for (sector_name in names(sectors_log_returns)) {
   }
 }
 
-# head(garch_results) 
 
-# META, NFLX, TGT are the only symbols that did not pass the GARCH Test, because of this the data frame, 'garch_results' will keep the log returns for those symbols.
-
-
-```
-
-
-***Example of Using Garch Function Above***
-```{r}
-# Let's simulate some data from a GARCH(1, 1) and check our function
-
-# Set the GARCH(1,1) model specifications with starting parameter values
-spec <- ugarchspec(
-  variance.model = list(model = "sGARCH", garchOrder = c(1, 1)),
-  mean.model = list(armaOrder = c(0, 0), include.mean = TRUE),
-  distribution.model = "norm", 
-  fixed.pars = list(mu = 0, omega = 0.1, alpha1 = 0.1, beta1 = 0.8) # Specify parameter values
-)
-
-
-# Simulate n = 1000 data points from the GARCH(1,1) model
-n <- 1000
-x <- as.numeric(fitted(ugarchpath(spec, n.sim = n)))
-
-# Plot the simulated GARCH data
-plot(x, type = "l", col = "blue", main = "Simulated GARCH(1,1) Time Series", 
-     xlab = "Time", ylab = "Value")
-
-# Checking our function
-fit_x <- test_and_fit_garch(x)
-
-# Now, let's simulate white noise and re-check our function
-y <- rnorm(n, mean = 0, sd = 1)
-
-# Plot the simulated GARCH data
-plot(y, type = "l", col = "blue", main = "Simulated Random Walk Time Series", 
-     xlab = "Time", ylab = "Value")
-
-# Re-checking our function
-fit_y <- test_and_fit_garch(y)
-
-```
-
-
-***Now that we got 'garch_results', we are going to filtering everything out again into its sectors to we can then perform analysis for each stock sector***
-```{r}
 
 # Create separate data frames for each sector
 garch_communication <- garch_results |> filter(sector == "communication")
@@ -409,30 +330,27 @@ garch_staples <- garch_results |> filter(sector == "staples")
 
 # Filtering for the communication services sector
 garch_communication_stable <- garch_communication |>
-    dplyr::filter(date >= "2016-01-01" & date <= "2018-12-31")
-  
+  dplyr::filter(date >= "2016-01-01" & date <= "2018-12-31")
+
 garch_communication_pandemic <- garch_communication |> 
-    dplyr::filter(date >= "2019-12-31" & date <= "2023-12-31")
+  dplyr::filter(date >= "2019-12-31" & date <= "2023-12-31")
 
 # Filtering for the consumer discretionary sector
 garch_discretionary_stable <- garch_discretionary |> 
-    dplyr::filter(date >= "2016-01-01" & date <= "2018-12-31")
-  
+  dplyr::filter(date >= "2016-01-01" & date <= "2018-12-31")
+
 garch_discretionary_pandemic <- garch_discretionary |> 
-    dplyr::filter(date >= "2019-12-31" & date <= "2023-12-31")
+  dplyr::filter(date >= "2019-12-31" & date <= "2023-12-31")
 
 # Filtering for the consumer staples sector
 garch_staples_stable <- garch_staples |> 
-    dplyr::filter(date >= "2016-01-01" & date <= "2018-12-31")
-  
+  dplyr::filter(date >= "2016-01-01" & date <= "2018-12-31")
+
 garch_staples_pandemic <- garch_staples |> 
-    dplyr::filter(date >= "2019-12-31" & date <= "2023-12-31")
+  dplyr::filter(date >= "2019-12-31" & date <= "2023-12-31")
 
 
-```
-
-***function to turn GARCH data frames to wide format***
-```{r}
+# Function to arrange the data (GARCH Residuals) into a wide forma
 get_wide_residuals <- function(residuals) {
   wide_residuals <- residuals |> 
     select(date, symbol, residual) |> 
@@ -441,182 +359,5 @@ get_wide_residuals <- function(residuals) {
   
   return(wide_residuals)
 }
-
-```
-
-***Wide format for GARCH dataframes***
-```{r}
-
-# Wide format for the communication services 
-garch_communication_stable_wide <- get_wide_residuals(garch_communication_stable)
-
-garch_communication_pandemic_wide <- get_wide_residuals(garch_communication_pandemic)
-
-# Wide format for the consumer discretionary 
-garch_discretionary_stable_wide <- get_wide_residuals(garch_discretionary_stable)
-
-garch_discretionary_pandemic_wide <- get_wide_residuals(garch_discretionary_pandemic)
-
-# Wide format for the consumer staples
-garch_staples_stable_wide <- get_wide_residuals(garch_staples_stable)
-
-garch_staples_pandemic_wide <- get_wide_residuals(garch_staples_pandemic)
-
-
-```
-
-
-***Creating Matrix Plots for Communication Services***
-```{r}
-
-
-# Helper function to reshape a matrix into a long format for ggplot, keeping only the lower triangle
-reshape_for_ggplot <- function(matrix, names) {
-  as.data.frame(matrix) %>%
-    rownames_to_column(var = "Var1") %>%
-    pivot_longer(-Var1, names_to = "Var2", values_to = "value") %>%
-    mutate(
-      Var1 = factor(Var1, levels = names, ordered = TRUE),
-      Var2 = factor(Var2, levels = names, ordered = TRUE)
-    ) %>%
-    filter(as.numeric(Var1) > as.numeric(Var2))  # Keep only lower triangle
-}
-
-# Function to plot the Spearman Correlation
-plot_spearman_correlation_ggplot <- function(wide_data, title) {
-  # Calculate Spearman correlation matrix
-  spearman_corr <- cor(wide_data, method = "spearman", use = "pairwise.complete.obs")
-  
-  # Reshape for ggplot
-  corr_data <- reshape_for_ggplot(spearman_corr, communication_tickers)
-  
-  # Plot with values inside the tiles
-  ggplot(corr_data, aes(x = Var1, y = Var2, fill = value)) +
-    geom_tile(color = "white") +
-    geom_text(aes(label = round(value, 2)), color = "black", size = 3) +  # Display correlation values
-    scale_fill_viridis_c(option = "plasma", limits = c(-1, 1), name = "Spearman\nCorrelation") +
-    theme_minimal() +
-    theme(
-      axis.text.x = element_text(angle = 45, hjust = 1),
-      axis.text.y = element_text(size = 10)
-    ) +
-    labs(title = title, x = "", y = "") +
-    coord_fixed()
-}
-
-# Function to compute Mutual Information matrix for a wide-format data frame
-compute_mutual_information_matrix <- function(wide_data) {
-  discretized_data <- discretize(wide_data)
-  n <- ncol(discretized_data)
-  mi_matrix <- matrix(0, n, n)
-  
-  for (i in 1:n) {
-    for (j in 1:n) {
-      mi_matrix[i, j] <- mutinformation(discretized_data[, i], discretized_data[, j])
-    }
-  }
-  
-  colnames(mi_matrix) <- colnames(wide_data)
-  rownames(mi_matrix) <- colnames(wide_data)
-  
-  return(mi_matrix)
-}
-
-# Plotting function for Mutual Information matrix
-plot_mutual_information_matrix <- function(wide_data, title) {
-  mi_matrix <- compute_mutual_information_matrix(wide_data)
-  mi_data <- reshape_for_ggplot(mi_matrix, communication_tickers)
-  
-  ggplot(mi_data, aes(x = Var1, y = Var2, fill = value)) +
-    geom_tile(color = "white") +
-    geom_text(aes(label = round(value, 2)), color = "black", size = 3) +  # Display MI values
-    scale_fill_viridis_c(option = "plasma", name = "Mutual\nInformation") +
-    theme_minimal() +
-    theme(
-      axis.text.x = element_text(angle = 45, hjust = 1),
-      axis.text.y = element_text(size = 10)
-    ) +
-    labs(title = title, x = "", y = "") +
-    coord_fixed()
-}
-
-# Function to compute Tail Dependence Coefficient (TDC) matrix
-compute_tdc_matrix <- function(data, percentile = 0.05) {
-  n <- nrow(data)
-  percentile_value <- quantile(data[[1]], probs = percentile)
-  k <- sum(data[[1]] <= percentile_value)
-  tdc_mat <- FRAPO::tdc(data, method = "EmpTC", lower = TRUE, k = k)
-  return(tdc_mat)
-}
-
-# Function to plot Tail Dependence Coefficient (TDC) matrix with only the lower triangle
-plot_tdc_mat <- function(data, title, percentile = 0.05) {
-  tdc_mat <- compute_tdc_matrix(data, percentile = percentile)
-  tdc_mat[upper.tri(tdc_mat)] <- NA
-  tdc_long <- reshape_for_ggplot(tdc_mat, communication_tickers)
-  
-  ggplot(tdc_long, aes(x = Var1, y = Var2, fill = value)) +
-    geom_tile(color = "white") +
-    geom_text(aes(label = round(value, 2)), color = "black", size = 3, na.rm = TRUE) +
-    scale_fill_viridis_c(option = "plasma", limits = c(0, 1), name = "TDC") +
-    theme_minimal() +
-    theme(
-      axis.text.x = element_text(angle = 45, hjust = 1),
-      axis.text.y = element_text(size = 10),
-      legend.position = "right"
-    ) +
-    labs(title = title, x = "", y = "") +
-    coord_fixed()
-}
-
-# Outputting the all of the plots for the communication services sector
-plot_spearman_correlation_ggplot(garch_communication_stable_wide, "Spearman Correlation for Communication Services (Stable Period)")
-plot_spearman_correlation_ggplot(garch_communication_pandemic_wide, "Spearman Correlation for Communication Services (Pandemic Period)")
-
-plot_mutual_information_matrix(garch_communication_stable_wide, "Mutual Information for Communication Services (Stable Period)")
-plot_mutual_information_matrix(garch_communication_pandemic_wide, "Mutual Information for Communication Services (Pandemic Period)")
-
-plot_tdc_mat(garch_communication_stable_wide, "TDC for Communication Services (Stable Period)")
-plot_tdc_mat(garch_communication_pandemic_wide, "TDC for Communication Services (Pandemic Period)")
-
-
-
-```
-
-
-***Plots for the Consumer Discretionary Sector***
-```{r}
-# Spearman Correlation for the Consumer Discretionary Sector
-
-plot_spearman_correlation_ggplot(garch_communication_stable_wide, "Spearman Correlation for Consumer Discretionary (Stable Period)")
-plot_spearman_correlation_ggplot(garch_communication_pandemic_wide, "Spearman Correlation for Consumer Discretionary (Pandemic Period)")
-
-plot_mutual_information_matrix(garch_discretionary_stable_wide, "Mutual Information for Consumer Discretionary (Stable Period)")
-plot_mutual_information_matrix(garch_discretionary_pandemic_wide, "Mutual Information for Consumer Discretionary (Pandemic Period)")
-
-plot_tdc_mat(garch_discretionary_stable_wide, "TDC for Consumer Discretionary (Stable Period)")
-plot_tdc_mat(garch_discretionary_pandemic_wide, "TDC for Consumer Discretionary (Pandemic Period)")
-
-
-```
-
-
-***Plots for the Consumer Staples Sector***
-```{r}
-
-# Spearman Correlation for the Consumer Staples Sector
-
-plot_spearman_correlation_ggplot(garch_staples_stable_wide, "Spearman Correlation for Consumer Staples (Stable Period)")
-plot_spearman_correlation_ggplot(garch_staples_pandemic_wide, "Spearman Correlation for Consumer Staples (Pandemic Period)")
-
-plot_mutual_information_matrix(garch_staples_stable_wide, "Mutual Information for Consumer Staples (Stable Period)")
-plot_mutual_information_matrix(garch_staples_pandemic_wide, "Mutual Information for Consumer Staples (Pandemic Period)")
-
-plot_tdc_mat(garch_staples_stable_wide, "TDC for Consumer Staples (Stable Period)")
-plot_tdc_mat(garch_staples_pandemic_wide, "TDC for Consumer Staples (Pandemic Period)")
-
-```
-
-
 
 
