@@ -483,12 +483,12 @@ reshape_for_ggplot <- function(matrix, names) {
 }
 
 # Function to plot the Spearman Correlation
-plot_spearman_correlation_ggplot <- function(wide_data, title) {
+plot_spearman_correlation_ggplot <- function(wide_data, title, tickers) {
   # Calculate Spearman correlation matrix
   spearman_corr <- cor(wide_data, method = "spearman", use = "pairwise.complete.obs")
   
   # Reshape for ggplot
-  corr_data <- reshape_for_ggplot(spearman_corr, communication_tickers)
+  corr_data <- reshape_for_ggplot(spearman_corr, tickers)
   
   # Plot with values inside the tiles
   ggplot(corr_data, aes(x = Var1, y = Var2, fill = value)) +
@@ -523,9 +523,9 @@ compute_mutual_information_matrix <- function(wide_data) {
 }
 
 # Plotting function for Mutual Information matrix
-plot_mutual_information_matrix <- function(wide_data, title) {
+plot_mutual_information_matrix <- function(wide_data, title, tickers) {
   mi_matrix <- compute_mutual_information_matrix(wide_data)
-  mi_data <- reshape_for_ggplot(mi_matrix, communication_tickers)
+  mi_data <- reshape_for_ggplot(mi_matrix, tickers)
   
   ggplot(mi_data, aes(x = Var1, y = Var2, fill = value)) +
     geom_tile(color = "white") +
@@ -550,10 +550,10 @@ compute_tdc_matrix <- function(data, percentile = 0.05) {
 }
 
 # Function to plot Tail Dependence Coefficient (TDC) matrix with only the lower triangle
-plot_tdc_mat <- function(data, title, percentile = 0.05) {
+plot_tdc_mat <- function(data, title, tickers, percentile = 0.05) {
   tdc_mat <- compute_tdc_matrix(data, percentile = percentile)
   tdc_mat[upper.tri(tdc_mat)] <- NA
-  tdc_long <- reshape_for_ggplot(tdc_mat, communication_tickers)
+  tdc_long <- reshape_for_ggplot(tdc_mat, tickers)
   
   ggplot(tdc_long, aes(x = Var1, y = Var2, fill = value)) +
     geom_tile(color = "white") +
@@ -570,14 +570,14 @@ plot_tdc_mat <- function(data, title, percentile = 0.05) {
 }
 
 # Outputting the all of the plots for the communication services sector
-plot_spearman_correlation_ggplot(garch_communication_stable_wide, "Spearman Correlation for Communication Services (Stable Period)")
-plot_spearman_correlation_ggplot(garch_communication_pandemic_wide, "Spearman Correlation for Communication Services (Pandemic Period)")
+plot_spearman_correlation_ggplot(garch_communication_stable_wide, "Spearman Correlation for Communication Services (Stable Period)", communication_tickers)
+plot_spearman_correlation_ggplot(garch_communication_pandemic_wide, "Spearman Correlation for Communication Services (Pandemic Period)", communication_tickers)
 
-plot_mutual_information_matrix(garch_communication_stable_wide, "Mutual Information for Communication Services (Stable Period)")
-plot_mutual_information_matrix(garch_communication_pandemic_wide, "Mutual Information for Communication Services (Pandemic Period)")
+plot_mutual_information_matrix(garch_communication_stable_wide, "Mutual Information for Communication Services (Stable Period)", communication_tickers)
+plot_mutual_information_matrix(garch_communication_pandemic_wide, "Mutual Information for Communication Services (Pandemic Period)", communication_tickers)
 
-plot_tdc_mat(garch_communication_stable_wide, "TDC for Communication Services (Stable Period)")
-plot_tdc_mat(garch_communication_pandemic_wide, "TDC for Communication Services (Pandemic Period)")
+plot_tdc_mat(garch_communication_stable_wide, "TDC for Communication Services (Stable Period)", communication_tickers)
+plot_tdc_mat(garch_communication_pandemic_wide, "TDC for Communication Services (Pandemic Period)", communication_tickers)
 
 
 
@@ -588,14 +588,14 @@ plot_tdc_mat(garch_communication_pandemic_wide, "TDC for Communication Services 
 ```{r}
 # Spearman Correlation for the Consumer Discretionary Sector
 
-plot_spearman_correlation_ggplot(garch_communication_stable_wide, "Spearman Correlation for Consumer Discretionary (Stable Period)")
-plot_spearman_correlation_ggplot(garch_communication_pandemic_wide, "Spearman Correlation for Consumer Discretionary (Pandemic Period)")
+plot_spearman_correlation_ggplot(garch_discretionary_stable_wide, "Spearman Correlation for Consumer Discretionary (Stable Period)", discretionary_tickers)
+plot_spearman_correlation_ggplot(garch_discretionary_pandemic_wide, "Spearman Correlation for Consumer Discretionary (Pandemic Period)", discretionary_tickers)
 
-plot_mutual_information_matrix(garch_discretionary_stable_wide, "Mutual Information for Consumer Discretionary (Stable Period)")
-plot_mutual_information_matrix(garch_discretionary_pandemic_wide, "Mutual Information for Consumer Discretionary (Pandemic Period)")
+plot_mutual_information_matrix(garch_discretionary_stable_wide, "Mutual Information for Consumer Discretionary (Stable Period)", discretionary_tickers)
+plot_mutual_information_matrix(garch_discretionary_pandemic_wide, "Mutual Information for Consumer Discretionary (Pandemic Period)", discretionary_tickers)
 
-plot_tdc_mat(garch_discretionary_stable_wide, "TDC for Consumer Discretionary (Stable Period)")
-plot_tdc_mat(garch_discretionary_pandemic_wide, "TDC for Consumer Discretionary (Pandemic Period)")
+plot_tdc_mat(garch_discretionary_stable_wide, "TDC for Consumer Discretionary (Stable Period)", discretionary_tickers)
+plot_tdc_mat(garch_discretionary_pandemic_wide, "TDC for Consumer Discretionary (Pandemic Period)", discretionary_tickers)
 
 
 ```
@@ -606,17 +606,40 @@ plot_tdc_mat(garch_discretionary_pandemic_wide, "TDC for Consumer Discretionary 
 
 # Spearman Correlation for the Consumer Staples Sector
 
-plot_spearman_correlation_ggplot(garch_staples_stable_wide, "Spearman Correlation for Consumer Staples (Stable Period)")
-plot_spearman_correlation_ggplot(garch_staples_pandemic_wide, "Spearman Correlation for Consumer Staples (Pandemic Period)")
+plot_spearman_correlation_ggplot(garch_staples_stable_wide, "Spearman Correlation for Consumer Staples (Stable Period)", staples_tickers)
+plot_spearman_correlation_ggplot(garch_staples_pandemic_wide, "Spearman Correlation for Consumer Staples (Pandemic Period)", staples_tickers)
 
-plot_mutual_information_matrix(garch_staples_stable_wide, "Mutual Information for Consumer Staples (Stable Period)")
-plot_mutual_information_matrix(garch_staples_pandemic_wide, "Mutual Information for Consumer Staples (Pandemic Period)")
+plot_mutual_information_matrix(garch_staples_stable_wide, "Mutual Information for Consumer Staples (Stable Period)", staples_tickers)
+plot_mutual_information_matrix(garch_staples_pandemic_wide, "Mutual Information for Consumer Staples (Pandemic Period)", staples_tickers)
 
-plot_tdc_mat(garch_staples_stable_wide, "TDC for Consumer Staples (Stable Period)")
-plot_tdc_mat(garch_staples_pandemic_wide, "TDC for Consumer Staples (Pandemic Period)")
+plot_tdc_mat(garch_staples_stable_wide, "TDC for Consumer Staples (Stable Period)", staples_tickers)
+plot_tdc_mat(garch_staples_pandemic_wide, "TDC for Consumer Staples (Pandemic Period)", staples_tickers)
 
 ```
 
 
+***Cross-Sector Analysis***
+```{r}
+# Below is a dataframe for the GARCH residuals for each sector, during the stable period
+all_sector_garch_stable <- rbind(garch_communication_stable, garch_discretionary_stable, garch_staples_stable)
+
+# Below is a dataframe for the GARCH residuals for each sector, during the pandemic period
+all_sector_garch_pandemic <- rbind(garch_communication_pandemic, garch_discretionary_pandemic, garch_staples_pandemic)
+
+all_sector_wide_stable <- get_wide_residuals(all_sector_garch_stable)
+all_sector_wide_pandemic <- get_wide_residuals(all_sector_garch_pandemic)
 
 
+all_tickers <- rbind(communication_tickers, discretionary_tickers, staples_tickers) # combining all of the Vectors that have the symbols for each stocl
+
+plot_spearman_correlation_ggplot(all_sector_wide_stable, "Spearman Correlation Across All Sectors (Stable Period)", all_tickers)
+plot_spearman_correlation_ggplot(all_sector_wide_pandemic, "Spearman Correlation for Across All Sectors (Pandemic Period)", all_tickers)
+
+plot_mutual_information_matrix(all_sector_wide_stable, "Mutual Information Across All Sectors (Stable Period)", all_tickers)
+plot_mutual_information_matrix(all_sector_wide_pandemic, "Mutual Information Across All Sectors (Pandemic Period)", all_tickers)
+
+plot_tdc_mat(all_sector_wide_stable, "TDC Across All Sectors (Stable Period)", all_tickers)
+plot_tdc_mat(all_sector_wide_pandemic, "TDC Across All Sectors (Pandemic Period)", all_tickers)
+
+
+```
