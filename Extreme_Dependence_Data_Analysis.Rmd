@@ -517,11 +517,18 @@ compute_mutual_information_matrix <- function(wide_data) {
     }
   }
   
+  # Normalize the matrix by dividing by the maximum value
+  max_value <- max(mi_matrix)
+  if (max_value > 0) {  # Avoid division by zero
+    mi_matrix <- mi_matrix / max_value
+  }
+
   colnames(mi_matrix) <- colnames(wide_data)
   rownames(mi_matrix) <- colnames(wide_data)
   
   return(mi_matrix)
 }
+
 
 # Plotting function for Mutual Information matrix
 plot_mutual_information_matrix <- function(wide_data, title, tickers) {
@@ -640,11 +647,15 @@ plot_tdc_mat <- function(data, title, tickers = NULL, percentile = 0.05,
 Spearman_stable_comm <-plot_spearman_correlation_ggplot(garch_communication_stable_wide, "Spearman Correlation for the Communication Services Sector (Stable Period)", communication_tickers)
 Spearman_pan_comm <-plot_spearman_correlation_ggplot(garch_communication_pandemic_wide, "Spearman Correlation for the Communication Services Sector(Pandemic Period)", communication_tickers)
 
-plot_mutual_information_matrix(garch_communication_stable_wide, "Mutual Information for the Communication Services Sector (Stable Period)", communication_tickers)
-plot_mutual_information_matrix(garch_communication_pandemic_wide, "Mutual Information for the Communication Services Sector (Pandemic Period)", communication_tickers)
+mi_stable_comm <-plot_mutual_information_matrix(garch_communication_stable_wide, "Mutual Information for the Communication Services Sector (Stable Period)", communication_tickers)
+mi_pandemic_comm <-plot_mutual_information_matrix(garch_communication_pandemic_wide, "Mutual Information for the Communication Services Sector (Pandemic Period)", communication_tickers)
 
-tdc_stable_comm <-plot_tdc_mat(garch_communication_stable_wide, "TDC for theCommunication Services Sector (Stable Period)",tickers =  communication_tickers, percentile = 0.05)
+tdc_stable_comm <-plot_tdc_mat(garch_communication_stable_wide, "TDC for the Communication Services Sector (Stable Period)",tickers =  communication_tickers, percentile = 0.05)
 tdc_pan_comm <-plot_tdc_mat(garch_communication_pandemic_wide, "TDC for the Communication Services Sector (Pandemic Period)",tickers =  communication_tickers, percentile = 0.05)
+
+
+ggsave("mi_stable_comm.png", plot = mi_stable_comm, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves Spearman Correlation (stable period)
+ggsave("mi_pan_comm.png", plot = mi_pandemic_comm, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves Spearman Correlation (pandemic period)
 
 
 ggsave("Spearman_stable_comm.png", plot = Spearman_stable_comm, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves Spearman Correlation (stable period)
@@ -664,12 +675,14 @@ ggsave("tdc_pan_comm.png", plot = tdc_pan_comm, width = 5120, height = 2880,unit
 Spearman_stable_dis <-plot_spearman_correlation_ggplot(garch_discretionary_stable_wide, "Spearman Correlation for the Consumer Discretionary Sector (Stable Period)", discretionary_tickers)
 Spearman_pan_dis <-plot_spearman_correlation_ggplot(garch_discretionary_pandemic_wide, "Spearman Correlation for the Consumer Discretionary Sector (Pandemic Period)", discretionary_tickers)
 
-mutualinfo_stable_dis <-plot_mutual_information_matrix(garch_discretionary_stable_wide, "Mutual Information for the Consumer Discretionary Sector (Stable Period)", discretionary_tickers)
-mutualinfo_pan_dis <-plot_mutual_information_matrix(garch_discretionary_pandemic_wide, "Mutual Information for the Consumer Discretionary Sector (Pandemic Period)", discretionary_tickers)
+mi_stable_dis <-mutualinfo_stable_dis <-plot_mutual_information_matrix(garch_discretionary_stable_wide, "Mutual Information for the Consumer Discretionary Sector (Stable Period)", discretionary_tickers)
+mi_pan_dis <-mutualinfo_pan_dis <-plot_mutual_information_matrix(garch_discretionary_pandemic_wide, "Mutual Information for the Consumer Discretionary Sector (Pandemic Period)", discretionary_tickers)
 
 tdc_stable_dis <-plot_tdc_mat(garch_discretionary_stable_wide, "TDC for the Consumer Discretionary Sector (Stable Period)",tickers =  discretionary_tickers, percentile = 0.05)
 tdc_pan_dis <-plot_tdc_mat(garch_discretionary_pandemic_wide, "TDC for the Consumer Discretionary Sector (Pandemic Period)",tickers =  discretionary_tickers, percentile = 0.05)
 
+ggsave("mi_stable_dis.png", plot = mi_stable_dis, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves Spearman Correlation (stable period)
+ggsave("mi_pan_dis.png", plot = mi_pan_dis, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves Spearman Correlation (pandemic period)
 
 ggsave("Spearman_stable_dis.png", plot = Spearman_stable_dis, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves Spearman Correlation (stable period)
 ggsave("Spearman_pan_dis.png", plot = Spearman_pan_dis, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves Spearman Correlation (pandemic period)
@@ -689,11 +702,15 @@ ggsave("tdc_pan_dis.png", plot = tdc_pan_dis, width = 5120, height = 2880,units 
 Spearman_stable_con <-plot_spearman_correlation_ggplot(garch_staples_stable_wide, "Spearman Correlation for the Consumer Staples Sector (Stable Period)", staples_tickers)
 Spearman_pan_con <-plot_spearman_correlation_ggplot(garch_staples_pandemic_wide, "Spearman Correlation for the Consumer Staples Sector (Pandemic Period)", staples_tickers)
 
-plot_mutual_information_matrix(garch_staples_stable_wide, "Mutual Information for the Consumer Staples Sector (Stable Period)", staples_tickers)
-plot_mutual_information_matrix(garch_staples_pandemic_wide, "Mutual Information for the Consumer Staples Sector (Pandemic Period)", staples_tickers)
+mi_stable_con <-plot_mutual_information_matrix(garch_staples_stable_wide, "Mutual Information for the Consumer Staples Sector (Stable Period)", staples_tickers)
+mi_pan_con <-plot_mutual_information_matrix(garch_staples_pandemic_wide, "Mutual Information for the Consumer Staples Sector (Pandemic Period)", staples_tickers)
 
 tdc_stable_con <-plot_tdc_mat(garch_staples_stable_wide, "TDC for the Consumer Staples Sector (Stable Period)",tickers =  staples_tickers, percentile = 0.05)
 tdc_pan_con <-plot_tdc_mat(garch_staples_pandemic_wide, "TDC for the Consumer Staples Sector (Pandemic Period)",tickers = staples_tickers, percentile = 0.05)
+
+
+ggsave("mi_stable_con.png", plot = mi_stable_con, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves Spearman Correlation (stable period)
+ggsave("mi_pan_con.png", plot = mi_pan_con, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves Spearman Correlation (pandemic period)
 
 ggsave("Spearman_stable_con.png", plot = Spearman_stable_con, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves Spearman Correlation (stable period)
 ggsave("Spearman_pan_con.png", plot = Spearman_pan_con, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves Spearman Correlation (pandemic period)
@@ -709,32 +726,55 @@ ggsave("tdc_pan_con.png", plot = tdc_pan_con, width = 5120, height = 2880,units 
 
 ***These functions are to plot all sectors***
 ```{r}
-# Helper function to reshape a for a full matrix
-reshape_for_ggplot_all_sector <- function(matrix, names) {
-  as.data.frame(matrix) %>%
+# Helper: reshape matrix after removing upper triangle (including diagonal)
+reshape_for_ggplot_lower_triangle <- function(mat, names) {
+  # Remove upper triangle including the diagonal
+  mat[upper.tri(mat, diag = TRUE)] <- NA
+  
+  as.data.frame(mat) %>%
     rownames_to_column(var = "Var1") %>%
     pivot_longer(-Var1, names_to = "Var2", values_to = "value") %>%
+    drop_na() %>%
     mutate(
       Var1 = factor(Var1, levels = names, ordered = TRUE),
       Var2 = factor(Var2, levels = names, ordered = TRUE)
-    ) 
+    )
 }
 
-
-# Function to plot Spearman Correlation (Full Matrix)
-plot_spearman_correlation_ggplot_all_sector <- function(wide_data, title, tickers, show_lower_triangle = FALSE) {
+# Function to plot Spearman Correlation (Lower Triangle with Vertical Separators)
+plot_spearman_correlation_ggplot_all_sector <- function(wide_data, title, tickers) {
   # Calculate Spearman correlation matrix
   spearman_corr <- cor(wide_data, method = "spearman", use = "pairwise.complete.obs")
   
-  # Reshape for ggplot
-  corr_data <- reshape_for_ggplot_all_sector(spearman_corr, tickers)
+  # Remove upper triangle and reshape for ggplot
+  corr_data <- reshape_for_ggplot_lower_triangle(spearman_corr, tickers)
   
-
+  # Number of tickers
+  n <- length(tickers)
   
-  # Plot full matrix
-  ggplot(corr_data, aes(x = Var1, y = Var2, fill = value)) +
+  # Create vertical separator segments.
+  # We want a segment at x = 12.5, 24.5, ... 
+  # and we want to clip the segment so it does not exceed the available data in the lower triangle.
+  # On our plot (with tile centers at 1,2,...,n), the lower triangle is bounded by the diagonal (y = x - 0.5).
+  # So for a vertical line at x = k + 0.5, we set y_max = (k + 0.5) - 0.5 = k.
+  sep_positions <- seq(12.5, n - 0.5, by = 12)
+  vertical_lines <- tibble(
+    x = sep_positions,
+    ymin = 0.5,
+    ymax = sep_positions - 0.5  # so, for x = 12.5, ymax = 12; for x = 24.5, ymax = 24, etc.
+  )
+  
+  ggplot(corr_data, aes(x = as.numeric(Var1), y = as.numeric(Var2), fill = value)) +
     geom_tile(color = "white", size = 0.1) +
+    # Draw the vertical segments
+    geom_segment(data = vertical_lines, 
+                 aes(x = x, xend = x, y = ymin, yend = ymax),
+                 inherit.aes = FALSE, 
+                 color = "black", size = 0.8) +
     scale_fill_viridis_c(option = "plasma", limits = c(-1, 1), name = "Spearman\nCorrelation") +
+    # Convert back to custom axis: positions 1:n with labels = tickers
+    scale_x_continuous(breaks = 1:n, labels = tickers) +
+    scale_y_continuous(breaks = 1:n, labels = tickers) +
     theme_classic() +
     theme(
       axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = 6, face = "bold"),
@@ -752,37 +792,53 @@ plot_spearman_correlation_ggplot_all_sector <- function(wide_data, title, ticker
     labs(title = title)
 }
 
-
-# Function to plot Tail Dependence Coefficient (Full Matrix)
-plot_tdc_mat_all_sector <- function(data, title, tickers = NULL, percentile = 0.05,
-                                      families = NA, rotations = TRUE) {
-  # Compute the TDC matrix using the vineCopula approach.
+# Function to plot Tail Dependence Coefficient (Lower Triangle with Vertical Separators)
+plot_tdc_mat_all_sector <- function(data, title, tickers, percentile = 0.05,
+                                    families = NA, rotations = TRUE) {
+  # Compute the TDC matrix (your compute_tdc_matrix function should be defined elsewhere)
   tdc_mat <- compute_tdc_matrix(data, percentile = percentile,
                                 families = families, rotations = rotations)
   
-  # For a full matrix plot (including the main diagonal and upper triangle),
-  # simply comment out or remove the line that sets the upper triangle to NA.
-  # tdc_mat[upper.tri(tdc_mat)] <- NA
+  # Remove upper triangle (including diagonal)
+  tdc_mat[upper.tri(tdc_mat, diag = TRUE)] <- NA
   
-  # Reshape the matrix into a long-format data frame.
-  tdc_long <- reshape_for_tdc(tdc_mat, tickers)
+  # Reshape the matrix into a long-format data frame using the helper function
+  tdc_long <- reshape_for_ggplot_lower_triangle(tdc_mat, tickers)
   
-  # Create the heatmap with ggplot2.
-  p <- ggplot(tdc_long, aes(x = Var1, y = Var2, fill = value)) +
-    geom_tile(color = "white") +
-    scale_fill_viridis_c(option = "plasma", limits = c(0, 1),
-                         name = "TDC") +
+  n <- length(tickers)
+  sep_positions <- seq(12.5, n - 0.5, by = 12)
+  vertical_lines <- tibble(
+    x = sep_positions,
+    ymin = 0.5,
+    ymax = sep_positions - 0.5
+  )
+  
+  ggplot(tdc_long, aes(x = as.numeric(Var1), y = as.numeric(Var2), fill = value)) +
+    geom_tile(color = "white", size = 0.1) +
+    geom_segment(data = vertical_lines, 
+                 aes(x = x, xend = x, y = ymin, yend = ymax),
+                 inherit.aes = FALSE,
+                 color = "black", size = 0.8) +
+    scale_fill_viridis_c(option = "plasma", limits = c(0, 1), name = "TDC") +
+    scale_x_continuous(breaks = 1:n, labels = tickers) +
+    scale_y_continuous(breaks = 1:n, labels = tickers) +
     theme_classic() +
     theme(
-      axis.text.x = element_text(angle = 45, hjust = 1),
-      axis.text.y = element_text(size = 10),
-      legend.position = "right"
+      axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = 6, face = "bold"),
+      axis.text.y = element_text(size = 6, face = "bold"),
+      axis.title = element_blank(),
+      panel.grid = element_blank(),
+      plot.title = element_text(size = 10, face = "bold", hjust = 0.5),
+      legend.title = element_text(size = 10),
+      legend.text = element_text(size = 6),
+      legend.key.height = unit(0.3, "cm"),
+      legend.key.width = unit(0.15, "cm"),
+      legend.position = "right",
+      plot.margin = margin(0, 0, 0, 0)
     ) +
-    labs(title = title, x = "", y = "") +
-    coord_fixed()
-  
-  return(p)
+    labs(title = title)
 }
+
 
 
 ```
