@@ -34,6 +34,7 @@ library(FinTS)
 library(reshape2)
 library(viridis)
 library(tibble)
+library(ggpubr)
 ```
 
 ***Functions for Stock Closing Prices/Log Returns/Wide-Format for Copula Analysis/plotting prices and log returns***
@@ -90,8 +91,8 @@ get_prices <- function(tickers, start_date, end_date, sector_name) {
 
 
 # Define start and end dates for the data
-start_date <- "2016-01-01"
-end_date <- "2023-12-31"
+start_date <- "2006-12-31"
+end_date <- "2024-01-01"
 
 # Define tickers for the consumer discretionary sector
 staples_tickers <- c(
@@ -114,11 +115,65 @@ discretionary_tickers <- c(
   "SBUX", "MAR", "EBAY",
   "BBY", "ETSY", "MGM")
 
+technology_tickers <- c(
+  "AAPL", "NVDA", "MSFT",
+  "AVGO", "ORCL", "CRM", 
+  "CSCO", "IBM", "ADBE", 
+  "AMD", "HP", "CTSH")
 
-## Filtering and Processing stocks for Consumer Staples Sector ##
 
 
-# Fetch and process consumer staples sector stock prices
+## Fetch and process technology sector stock prices ##
+
+tech_prices <- get_prices(
+  tickers = technology_tickers, 
+  start_date = start_date, 
+  end_date = end_date, 
+  sector_name = "Technology"
+)
+
+tech_global <- tech_prices |> 
+  dplyr::filter(date >= "2007-01-01" & date <= "2009-12-31")
+tech_global$period <- "Global Crisis"
+tech_global <- tech_global |> 
+  select(
+    date, period, sector, symbol, close, close_scaled, close_lgret
+  )
+
+tech_stable <- tech_prices |> 
+  dplyr::filter(date >= "2015-12-31" & date <= "2018-12-31")
+tech_stable$period <- "Stable Market"
+tech_stable <- tech_stable |> 
+  select(
+    date, period, sector, symbol, close, close_scaled, close_lgret
+  )
+
+tech_pandemic <- tech_prices |> 
+  dplyr::filter(date >= "2019-12-31" & date <= "2023-12-31")
+tech_pandemic$period <- "Pandemic and Downturn"
+tech_pandemic <- tech_pandemic |> 
+  select(
+    date, period, sector, symbol, close, close_scaled, close_lgret
+  )
+
+# Combine the periods
+tech_period <- rbind(
+    tech_global, tech_stable, tech_pandemic
+  ) |> 
+  select(
+    date, period, sector, symbol, close, close_scaled, close_lgret
+  ) |> 
+  mutate(
+    period = factor(
+      period, 
+      ordered = TRUE,
+      levels = c("Global Crisis", "Stable Market", "Pandemic and Downturn")
+    )
+  )
+
+
+
+## Fetch and process consumer staples sector stock prices ##
 staples_prices <- get_prices(
   tickers = staples_tickers, 
   start_date = start_date, 
@@ -126,8 +181,16 @@ staples_prices <- get_prices(
   sector_name = "Consumer Staples"
 )
 
+staples_global <- staples_prices |> 
+  dplyr::filter(date >= "2007-01-01" & date <= "2009-12-31")
+staples_global$period <- "Global Crisis"
+staples_global <- staples_global |> 
+  select(
+    date, period, sector, symbol, close, close_scaled, close_lgret
+  )
+
 staples_stable <- staples_prices |> 
-  dplyr::filter(date >= "2016-01-01" & date <= "2018-12-31")
+  dplyr::filter(date >= "2015-12-31" & date <= "2018-12-31")
 staples_stable$period <- "Stable Market"
 staples_stable <- staples_stable |> 
   select(
@@ -144,8 +207,8 @@ staples_pandemic <- staples_pandemic |>
 
 # Combine the periods
 staples_period <- rbind(
-  staples_stable, staples_pandemic
-) |> 
+    staples_global, staples_stable, staples_pandemic
+  ) |> 
   select(
     date, period, sector, symbol, close, close_scaled, close_lgret
   ) |> 
@@ -153,7 +216,7 @@ staples_period <- rbind(
     period = factor(
       period, 
       ordered = TRUE,
-      levels = c("Stable Market", "Pandemic and Downturn")
+      levels = c("Global Crisis", "Stable Market", "Pandemic and Downturn")
     )
   )
 
@@ -167,8 +230,16 @@ discretionary_prices <- get_prices(
   sector_name = "Consumer Discretionary"
 )
 
+discretionary_global <- discretionary_prices |> 
+  dplyr::filter(date >= "2007-01-01" & date <= "2009-12-31")
+discretionary_global$period <- "Global Crisis"
+discretionary_global <- discretionary_global |> 
+  select(
+    date, period, sector, symbol, close, close_scaled, close_lgret
+  )
+
 discretionary_stable <- discretionary_prices |> 
-  dplyr::filter(date >= "2016-01-01" & date <= "2018-12-31")
+  dplyr::filter(date >= "2015-12-31" & date <= "2018-12-31")
 discretionary_stable$period <- "Stable Market"
 discretionary_stable <- discretionary_stable |> 
   select(
@@ -183,10 +254,10 @@ discretionary_pandemic <- discretionary_pandemic |>
     date, period, sector, symbol, close, close_scaled, close_lgret
   )
 
-# Combine the periods ()
+# Combine the periods
 discretionary_period <- rbind(
-  discretionary_stable, discretionary_pandemic
-) |> 
+    discretionary_global, discretionary_stable, discretionary_pandemic
+  ) |> 
   select(
     date, period, sector, symbol, close, close_scaled, close_lgret
   ) |> 
@@ -194,7 +265,7 @@ discretionary_period <- rbind(
     period = factor(
       period, 
       ordered = TRUE,
-      levels = c("Stable Market", "Pandemic and Downturn")
+      levels = c("Global Crisis", "Stable Market", "Pandemic and Downturn")
     )
   )
 
@@ -208,8 +279,16 @@ communication_prices <- get_prices(
   sector_name = "Communication Services"
 )
 
+communication_global <- communication_prices |> 
+  filter(date >= "2007-01-01" & date <= "2009-12-31")
+communication_global$period <- "Global Crisis"
+communication_global <- communication_global |> 
+  select(
+    date, period, sector, symbol, close, close_scaled, close_lgret
+  )
+
 communication_stable <- communication_prices |> 
-  dplyr::filter(date >= "2016-01-01" & date <= "2018-12-31")
+  filter(date >= "2015-12-31" & date <= "2018-12-31")
 communication_stable$period <- "Stable Market"
 communication_stable <- communication_stable |> 
   select(
@@ -224,10 +303,10 @@ communication_pandemic <- communication_pandemic |>
     date, period, sector, symbol, close, close_scaled, close_lgret
   )
 
-# Combine the periods ()
+# Combine the periods
 communication_period <- rbind(
-  communication_stable, communication_pandemic
-) |> 
+    communication_global, communication_stable, communication_pandemic
+  ) |> 
   select(
     date, period, sector, symbol, close, close_scaled, close_lgret
   ) |> 
@@ -235,7 +314,7 @@ communication_period <- rbind(
     period = factor(
       period, 
       ordered = TRUE,
-      levels = c("Stable Market", "Pandemic and Downturn")
+      levels = c("Global Crisis", "Stable Market", "Pandemic and Downturn")
     )
   )
 
@@ -245,25 +324,26 @@ communication_period <- rbind(
 
 ***Plotting Scaled Closing Prices/Log Returns***
 ```{r}
+
 # Function to plot scaled closing prices of stocks
 plot_stocks <- function(prices, sector_name) {
   
   # Define the crisis periods
   crisis_periods <- data.frame(
     start = as.Date(
-      c("2015-12-31", "2019-12-31")
+      c("2007-01-01", "2015-12-31", "2019-12-31")
     ),
     end = as.Date(
-      c("2018-12-31", "2023-12-31")
+      c("2009-12-31", "2018-12-31", "2023-12-31")
     ),
     crisis = c(
-      "Stable Market", "Pandemic and Downturn"
+      "Global Crisis", "Stable Market", "Pandemic and Downturn"
     )
   ) |> 
     mutate(crisis = factor(
       crisis, ordered = TRUE, 
         levels = c(
-          "Stable Market", "Pandemic and Downturn"
+          "Global Crisis", "Stable Market", "Pandemic and Downturn"
         )
       )
     )
@@ -347,246 +427,7 @@ plot_periods <- function(periods, sector_name) {
 }
 
 
-
-# Ensure date columns are Date objects
-communication_prices$date <- as.Date(communication_prices$date)
-communication_period$date <- as.Date(communication_period$date)
-
-# Function to plot scaled closing prices of stocks (your provided function)
-plot_stocks <- function(prices, sector_name) {
-  
-  # Define the crisis periods
-  crisis_periods <- data.frame(
-    start = as.Date(c("2015-12-31", "2019-12-31")),
-    end = as.Date(c("2018-12-31", "2023-12-31")),
-    crisis = c("Stable Market", "Pandemic and Downturn")
-  ) %>% 
-    mutate(crisis = factor(crisis, ordered = TRUE, 
-                           levels = c("Stable Market", "Pandemic and Downturn")))
-  
-  stock_plot <- prices %>% 
-    ggplot(aes(x = date, y = close_scaled, color = symbol, group = symbol)) +
-    geom_rect(
-      data = crisis_periods, 
-      aes(xmin = start, xmax = end, ymin = -Inf, ymax = Inf, fill = crisis),
-      alpha = 0.45, inherit.aes = FALSE
-    ) +
-    geom_line(linewidth = 0.75) +
-    scale_color_brewer(palette = "Set3") +
-    scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
-    scale_fill_brewer(palette = "Pastel1") +
-    labs(
-      title = paste0("Scaled Closing Prices of ", sector_name, " Sector Stocks"),
-      x = NULL,
-      y = "Scaled Closing Prices",
-      color = "Stock Symbol",
-      fill = "Crisis Period"
-    ) +
-    theme_minimal() +
-    theme(
-      plot.title = element_text(vjust = 1, size = 14, face = "bold"),
-      plot.title.position = "plot",
-      legend.position = "bottom",
-      legend.title = element_blank(),
-      legend.text = element_text(size = 10),
-      panel.grid.minor = element_blank(),
-      legend.box = "vertical",
-      legend.box.just = "center"
-    ) + 
-    guides(
-      color = guide_legend(order = 1, nrow = 2, byrow = TRUE),
-      fill = guide_legend(order = 2)
-    )
-  
-  return(stock_plot)
-}
-
-## Combining plots into one
-# library(Cowplot): for plot_grid(), ggdraw(), draw_label(), get_plot_component()
-
-# ---- Custom settings ----
-# Define colors for crisis periods
-plot_periods <- function(periods, crisis_period, stock = c("GOOGL" ="#FBBC05") {
-
-  # Define the crisis periods
-  crisis_periods <- data.frame(
-    start = as.Date(
-      c("2016-01-01", "2019-12-31")
-    ),
-    end = as.Date(
-      c("2018-12-31", "2023-12-31")
-    ),
-    crisis = c(
-      "Stable Market", "Pandemic and Downturn"
-    )
-  ) |> 
-    mutate(crisis = factor(
-      crisis, ordered = TRUE, 
-      levels = c(
-        "Stable Market", "Pandemic and Downturn"
-      )
-    )
-    )
-
-crisis_colors <- c(
-  "Stable Market" = "lightblue",
-  "Pandemic and Downturn" = "lightcoral"
-)
-
-  
-  # Custom color scale for stocks
-  custom_colors <- stock
-  
-  other_stocks <- setdiff(unique(periods$symbol), names(custom_colors))
-  custom_colors[other_stocks] <- "gray"
-  
-  # Separate the data for special stocks and other stocks
-  special_stocks <- periods |> dplyr::filter(symbol %in% names(stock))
-  other_stocks_data <- periods |> dplyr::filter(!(symbol %in% names(stock)))
-  
-  ggplot() +
-    # Plot the crisis periods
-    geom_rect(
-      data = filter(crisis_periods, crisis == crisis_period), 
-      aes(xmin = start, xmax = end, ymin = -Inf, ymax = Inf, fill = crisis),
-      alpha = 0.45, inherit.aes = FALSE
-    ) +
-    # Plot the other stocks first
-    geom_line(
-      data = filter(other_stocks_data, period == crisis_period),
-      aes(x = date, y = close_lgret, group = symbol), 
-      color = "gray", linewidth = 1.5) +
-    # Plot the special stocks on top
-    geom_line(
-      data = filter(special_stocks, period == crisis_period),
-      aes(x = date, y = close_lgret, color = symbol, group = symbol), 
-      linewidth = 1.5) +
-    scale_color_manual(
-      values = custom_colors,
-      breaks = names(stock),
-      labels = names(stock)
-    ) +
-    scale_fill_manual(
-      values = crisis_colors,
-      breaks = c("Stable Market", "Pandemic and Downturn"),
-      labels = c("Stable Market", "Pandemic and Downturn")
-    ) +
-    scale_x_date(breaks = date_ticks(5), date_labels = "%Y") +  
-    scale_y_continuous(
-      breaks = c(-0.4, -0.2, 0, 0.2, 0.4),
-      labels = c(-0.4, -0.2, 0, 0.2, 0.4),
-      limits = c(-0.5, 0.5)
-    ) +
-    labs(
-      title = NULL,
-      x = NULL,
-      y = " "
-    ) +
-    theme_minimal() +
-    theme(
-      axis.text = element_text(size = 24),
-      axis.title = element_text(size = 24),
-      legend.position = "none",
-      plot.margin = margin(5.5, 15.5, 5.5, 5.5), 
-      panel.grid.minor = element_blank()
-    )  -> plot_periods
-  
-  return(plot_periods)
-}
-
-# Generate the individual plots
-plot1 <- plot_grid(
-  plot_periods(communication_period, "Stable Market", c("GOOGL" = "#FBBC05")) + 
-    labs(y = " ") +
-    theme(axis.text.x = element_text(color = "white")),
-  plot_periods(communication_period, "Pandemic and Downturn", c("GOOGL" = "#FBBC05")) +
-    labs(y = " ") +
-    theme(axis.text = element_text(color = "white")),
-  nrow = 1,
-  rel_widths = c(1, 1)
-)
-
-plot2 <- plot_grid(
-  plot_periods(communication_period, "Stable Market", c("META" = "#1877F2")) + 
-    labs(y = "Log returns of closing prices") +
-    theme(axis.text.x = element_text(color = "white")),
-  plot_periods(communication_period, "Pandemic and Downturn", c("META" = "#1877F2")) +
-    labs(y = " ") +
-    theme(axis.text = element_text(color = "white")),
-  nrow = 1,
-  rel_widths = c(1, 1)
-)
-
-plot3 <- plot_grid(
-  plot_periods(communication_period, "Stable Market", c("NFLX" = "#E50914")) + 
-    labs(y = " "),
-  plot_periods(communication_period, "Pandemic and Downturn", c("NFLX" = "#E50914")) +
-    labs(y = " ") +
-    theme(axis.text.y = element_text(color = "white")),
-  nrow = 1,
-  rel_widths = c(1, 1)
-)
-
-# Combine all plots
-log_returns_periods <- plot_grid(
-  plot1,
-  plot2,
-  plot3,
-  nrow = 3,
-  rel_heights = c(1, 1, 1),
-  align = 'v'
-)
-
-stocks_legend <- plot_stocks(communication_prices)
-stocks_legend <- cowplot::get_plot_component(
-  stocks_legend, 'guide-box-bottom', return_all = TRUE
-)
-
-stocks_title <- ggdraw() + 
-  draw_label(
-    "Closing Prices and Log Returns for the Communication Services Sector",
-    fontface = 'bold',
-    size = 40,
-    x = 0,
-    hjust = 0
-  ) +
-  theme(
-    plot.margin = margin(0, 0, 0, 7)
-  )
-png(
-  "log_returns_communication.png", 
-  width = 1920, height = 1080*0.9
-)
-plot_grid(
-  stocks_title,
-  NULL,
-  plot_grid(
-    plot_grid(
-      plot_stocks(communication_prices) +
-        theme(legend.position = "none"),
-      log_returns_periods,
-      ncol = 2
-    ),
-    NULL,
-    stocks_legend,
-    ncol = 1, rel_heights = c(1, 0.01, 0.1)),
-  ncol = 1, rel_heights = c(0.1, 0.01, 1.4)
-) -> stocks_main
-print(stocks_main)
-dev.off()
-
-
-
-
-
-
-
-
-
-
-
-
-
+plot_stocks(tech_prices, "Technology")
 
 
 ```
@@ -661,7 +502,8 @@ test_and_fit_garch <- function(x, lags = 5, alpha = 0.05) {
 sectors_log_returns <- list(
   communication = communication_period,
   discretionary = discretionary_period,
-  staples = staples_period
+  staples = staples_period,
+  tech = tech_period
 )
 
 # Initialize an empty data frame to store the GARCH results
@@ -764,7 +606,7 @@ fit_y <- test_and_fit_garch(y)
 garch_communication <- garch_results |> dplyr::filter(sector == "communication")
 garch_discretionary <- garch_results |> dplyr::filter(sector == "discretionary")
 garch_staples <- garch_results |> dplyr::filter(sector == "staples")
-
+garch_tech <- garch_results |> dplyr::filter(sector == "technology")
 
 # Now we are going to separate each dataframe further for stable, and pandemic periods
 
@@ -823,6 +665,8 @@ garch_staples_stable_wide <- get_wide_residuals(garch_staples_stable)
 
 garch_staples_pandemic_wide <- get_wide_residuals(garch_staples_pandemic)
 
+r_data <- list(garch_communication_stable_wide, garch_communication_pandemic_wide, garch_discretionary_stable_wide, garch_discretionary_pandemic_wide, garch_staples_stable_wide, garch_staples_pandemic_wide)
+
 
 
 ```
@@ -835,7 +679,7 @@ garch_staples_pandemic_wide <- get_wide_residuals(garch_staples_pandemic)
 reshape_for_ggplot <- function(matrix, name_levels) {
   as.data.frame(matrix) %>%
     tibble::rownames_to_column(var = "Var1") %>%
-    tidyr::pivot_longer(cols = - .data$Var1, 
+    tidyr::pivot_longer(cols = -Var1, 
                         names_to = "Var2", 
                         values_to = "value") %>%
     dplyr::mutate(
@@ -847,7 +691,7 @@ reshape_for_ggplot <- function(matrix, name_levels) {
 
 
 # Function to plot the Spearman Correlation
-plot_spearman_correlation_ggplot <- function(wide_data, title, tickers) {
+plot_spearman_correlation_ggplot <-function(wide_data, title, subtitle, tickers) {
   # Calculate Spearman correlation matrix
   spearman_corr <- cor(wide_data, method = "spearman", use = "pairwise.complete.obs")
   
@@ -857,18 +701,25 @@ plot_spearman_correlation_ggplot <- function(wide_data, title, tickers) {
   # Plot with values inside the tiles
   ggplot(corr_data, aes(x = Var1, y = Var2, fill = value)) +
     geom_tile(color = "white") + # Edit the grid lines
-    geom_text(aes(label = round(value, 2)), color = "black", size = 5) +  # Display correlation values
-    scale_fill_viridis_c(option = "plasma", limits = c(-1, 1), name = "Spearman\nCorrelation") +
+    geom_text(aes(label = round(value, 2)), color = "black", size = 8) +  # Display correlation values
+    scale_fill_viridis_c(option = "plasma", limits = c(-1, 1)) +
+    ggtitle(title, subtitle) +
+    labs(x = "", y = "", fill = NULL) +
+    coord_fixed() +
     theme_minimal() +
+    guides(fill = guide_colorbar(barwidth = 30, barheight = 1),
+           label.theme = element_text(size = 6))+
     theme(
-      axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
-      axis.text.y = element_text(size = 10)
-    ) +
-    labs(title = title, x = "", y = "") +
-    coord_fixed()
+      legend.position = "bottom",
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+      axis.text.y = element_text(size = 12),
+      plot.title.position = "plot",
+      plot.title = element_text(size = 30, face = "bold"),
+      plot.subtitle = element_text(size = 24),
+      plot.margin = grid::unit(c(0, 0, 0, 0), "lines"), 
+      legend.text = element_text(size = 10)
+    )
 }
-
-
 
 
 # Function to compute Mutual Information matrix for a wide-format data frame
@@ -883,11 +734,6 @@ compute_mutual_information_matrix <- function(wide_data) {
     }
   }
   
-  # Normalize the matrix by dividing by the maximum value
-  max_value <- max(mi_matrix)
-  if (max_value > 0) {  # Avoid division by zero
-    mi_matrix <- mi_matrix / max_value
-  }
 
   colnames(mi_matrix) <- colnames(wide_data)
   rownames(mi_matrix) <- colnames(wide_data)
@@ -896,44 +742,52 @@ compute_mutual_information_matrix <- function(wide_data) {
 }
 
 
+# Getting the max MI of three sectors
+
+# 1. Compute MI matrices for each sector
+mi_comm_stable_score<- compute_mutual_information_matrix(garch_communication_stable_wide)
+mi_comm_pan_score<-compute_mutual_information_matrix(garch_communication_pandemic_wide)
+
+mi_dis_stable_score<- compute_mutual_information_matrix(garch_discretionary_stable_wide)
+mi_dis_pan_score<- compute_mutual_information_matrix(garch_discretionary_pandemic_wide)
+
+mi_staples_stable_score<- compute_mutual_information_matrix(garch_staples_stable_wide)
+mi_staples_pan_score<- compute_mutual_information_matrix(garch_staples_pandemic_wide)
+# 2. Get the overall maximum MI across all sectors
+max_mi <- max(mi_comm_stable_score,mi_comm_pan_score, mi_dis_stable_score, mi_dis_pan_score, mi_staples_stable_score, mi_staples_pan_score,na.rm = TRUE)
+
+
+
 # Plotting function for Mutual Information matrix
-plot_mutual_information_matrix <- function(wide_data, title, tickers) {
+plot_mutual_information_matrix <- function(wide_data, title, subtitle, tickers) {
   mi_matrix <- compute_mutual_information_matrix(wide_data)
   mi_data <- reshape_for_ggplot(mi_matrix, tickers)
   
+    # add a normalized column
+  mi_data$norm_value <- mi_data$value / max_mi
+  
   ggplot(mi_data, aes(x = Var1, y = Var2, fill = value)) +
     geom_tile(color = "white") +
-    geom_text(aes(label = round(value, 2)), color = "black", size = 5) +  # Display MI values
-    scale_fill_viridis_c(option = "plasma", name = "Mutual\nInformation") +
+    geom_text(aes(label = round(value, 2)), color = "black", size = 8) +  # Display MI values
+    scale_fill_viridis_c(option = "plasma", limits= c(0, 1),name = "") +
+    ggtitle(title, subtitle) +
     theme_minimal() +
+    guides(fill = guide_colorbar(barwidth = 30, barheight = 1), 
+           label.theme = element_text(size = 6))+
     theme(
-      axis.text.x = element_text(angle = 45, hjust = 1),
-      axis.text.y = element_text(size = 10)
+      legend.position = "bottom",
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+      axis.text.y = element_text(size = 12),
+      plot.subtitle = element_text(size = 24), 
+      plot.title = element_text(size = 30, face = "bold"),
+      legend.text = element_text(size = 10),
     ) +
-    labs(title = title, x = "", y = "") +
+    
+    labs(title = title, subtitle = subtitle, x = "", y = "") +
     coord_fixed()
 }
 
 
-# Outputting the all of the plots for the communication services sector
-Spearman_stable_comm <-plot_spearman_correlation_ggplot(garch_communication_stable_wide, "Spearman Correlation for the Communication Services Sector (Stable Period)", communication_tickers)
-Spearman_pan_comm <-plot_spearman_correlation_ggplot(garch_communication_pandemic_wide, "Spearman Correlation for the Communication Services Sector(Pandemic Period)", communication_tickers)
-
-ggsave("Spearman_stable_comm.png", plot = Spearman_stable_comm, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves Spearman Correlation (stable period)
-ggsave("Spearman_pan_comm.png", plot = Spearman_pan_comm, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves Spearman Correlation (pandemic period)
-
-Spearman_stable_dis <-plot_spearman_correlation_ggplot(garch_discretionary_stable_wide, "Spearman Correlation for the Consumer Discretionary Sector (Stable Period)", discretionary_tickers)
-Spearman_pan_dis <-plot_spearman_correlation_ggplot(garch_discretionary_pandemic_wide, "Spearman Correlation for the Consumer Discretionary Sector (Pandemic Period)", discretionary_tickers)
-
-ggsave("Spearman_stable_dis.png", plot = Spearman_stable_dis, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves Spearman Correlation (stable period)
-ggsave("Spearman_pan_dis.png", plot = Spearman_pan_dis, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves Spearman Correlation (pandemic period)
-
-
-Spearman_stable_con <-plot_spearman_correlation_ggplot(garch_staples_stable_wide, "Spearman Correlation for the Consumer Staples Sector (Stable Period)", staples_tickers)
-Spearman_pan_con <-plot_spearman_correlation_ggplot(garch_staples_pandemic_wide, "Spearman Correlation for the Consumer Staples Sector (Pandemic Period)", staples_tickers)
-
-ggsave("Spearman_stable_con.png", plot = Spearman_stable_con, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves Spearman Correlation (stable period)
-ggsave("Spearman_pan_con.png", plot = Spearman_pan_con, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves Spearman Correlation (pandemic period)
 
 
 
@@ -941,28 +795,24 @@ ggsave("Spearman_pan_con.png", plot = Spearman_pan_con, width = 5120, height = 2
 
 
 
-mi_stable_comm <-plot_mutual_information_matrix(garch_communication_stable_wide, "Mutual Information for the Communication Services Sector (Stable Period)", communication_tickers)
-mi_pandemic_comm <-plot_mutual_information_matrix(garch_communication_pandemic_wide, "Mutual Information for the Communication Services Sector (Pandemic Period)", communication_tickers)
+
+mi_stable_comm <-plot_mutual_information_matrix(garch_communication_stable_wide, "","", communication_tickers)
+mi_pandemic_comm <-plot_mutual_information_matrix(garch_communication_pandemic_wide, "","", communication_tickers)
 
 
-ggsave("mi_stable_comm.png", plot = mi_stable_comm, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves Spearman Correlation (stable period)
-ggsave("mi_pan_comm.png", plot = mi_pandemic_comm, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves Spearman Correlation (pandemic period)
 
 
-mi_stable_dis <-mutualinfo_stable_dis <-plot_mutual_information_matrix(garch_discretionary_stable_wide, "Mutual Information for the Consumer Discretionary Sector (Stable Period)", discretionary_tickers)
-mi_pan_dis <-mutualinfo_pan_dis <-plot_mutual_information_matrix(garch_discretionary_pandemic_wide, "Mutual Information for the Consumer Discretionary Sector (Pandemic Period)", discretionary_tickers)
+
+mi_stable_dis <-plot_mutual_information_matrix(garch_discretionary_stable_wide, "","", discretionary_tickers)
+mi_pan_dis <-mutualinfo_pan_dis <-plot_mutual_information_matrix(garch_discretionary_pandemic_wide, "", "",discretionary_tickers)
 
 
-ggsave("mi_stable_dis.png", plot = mi_stable_dis, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves MI Correlation (stable period)
-ggsave("mi_pan_dis.png", plot = mi_pan_dis, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves MI (pandemic period)
 
 
-mi_stable_con <-plot_mutual_information_matrix(garch_staples_stable_wide, "Mutual Information for the Consumer Staples Sector (Stable Period)", staples_tickers)
-mi_pan_con <-plot_mutual_information_matrix(garch_staples_pandemic_wide, "Mutual Information for the Consumer Staples Sector (Pandemic Period)", staples_tickers)
+mi_stable_con <-plot_mutual_information_matrix(garch_staples_stable_wide, "", "",staples_tickers)
+mi_pan_con <-plot_mutual_information_matrix(garch_staples_pandemic_wide, "", "",staples_tickers)
 
 
-ggsave("mi_stable_con.png", plot = mi_stable_con, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves Spearman Correlation (stable period)
-ggsave("mi_pan_con.png", plot = mi_pan_con, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves Spearman Correlation (pandemic period)
 
 ```
 
@@ -1023,41 +873,65 @@ compute_tdc_matrix <- function(data, percentile = 0.05, families = NA, rotations
   return(tdc_mat)
 }
 
+
+#  mymat <- compute_tdc_matrix(garch_communication_stable_wide)
+#  tdc_long <- reshape_for_tdc(mymat, tickers = communication_tickers)
 ## Helper function to reshape a square matrix for ggplot
-reshape_for_tdc <- function(mat, tickers = NULL) {
+
+# Reshape helper for TDC matrix
+reshape_for_tdc <- function(mat, tickers) {
   # Uses melt from reshape2 to convert the matrix into long format.
   # If tickers are provided, they will be used as the row/column names.
-  df_long <- melt(mat, varnames = c("Var1", "Var2"), value.name = "value")
-  return(df_long)
+ # Reshape the matrix into long format
+
+  # Convert the matrix to long format
+  mat_long <- as.data.frame(mat) %>%
+    tibble::rownames_to_column(var = "Var1") %>%
+    tidyr::pivot_longer(
+      cols = -Var1,
+      names_to = "Var2",
+      values_to = "value"
+    ) %>%
+    dplyr::mutate(
+      Var1 = factor(Var1, levels = tickers, ordered = TRUE),
+      Var2 = factor(Var2, levels = tickers, ordered = TRUE)
+    ) %>%
+    dplyr::filter(as.numeric(Var1) > as.numeric(Var2))  # strictly lower triangle
+
+  return(mat_long)
 }
 
+
 ## Function to plot the TDC matrix (only the lower triangle)
-plot_tdc_mat <- function(data, title, tickers = NULL, percentile = 0.05,
+plot_tdc_mat <- function(data, title, subtitle ,tickers = NULL, percentile = 0.05,
                          families = NA, rotations = TRUE) {
   # Compute the TDC matrix using the vineCopula approach.
   tdc_mat <- compute_tdc_matrix(data, percentile = percentile,
                                 families = families, rotations = rotations)
   
-  # Remove the main diagonal and upper triangle so that only the strictly lower triangle remains.
-  tdc_mat[upper.tri(tdc_mat, diag = TRUE)] <- NA
   
   # Reshape the matrix into a long-format data frame.
-  tdc_long <- reshape_for_ggplot(tdc_mat, tickers)
+  tdc_long <- reshape_for_tdc(tdc_mat, tickers)
   
   # Create the heatmap with ggplot2.
   p <- ggplot(tdc_long, aes(x = Var1, y = Var2, fill = value)) +
     geom_tile(color = "white") +
     geom_text(aes(label = ifelse(is.na(value), "", round(value, 2))),
-              color = "black", size = 6, na.rm = TRUE) +
+              color = "black", size = 8, na.rm = TRUE) +
     scale_fill_viridis_c(option = "plasma", limits = c(0, 1),
-                         name = "TDC") +
+                         name = "") +
+      guides(fill = guide_colorbar(barwidth = 30, barheight = 1), 
+           label.theme = element_text(size = 8))+
     theme_minimal() +
     theme(
-      axis.text.x = element_text(angle = 45, hjust = 1),
-      axis.text.y = element_text(size = 10),
-      legend.position = "right"
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+      axis.text.y = element_text(size = 12),
+      plot.subtitle = element_text(size = 24),
+      plot.title = element_text(size = 30, face = "bold"),
+      legend.text = element_text(size = 10),
+      legend.position = "bottom"
     ) +
-    labs(title = title, x = "", y = "") +
+    labs(title = title,subtitle = subtitle ,x = "", y = "") +
     coord_fixed()
   
   return(p)
@@ -1065,150 +939,496 @@ plot_tdc_mat <- function(data, title, tickers = NULL, percentile = 0.05,
 
 
 
-tdc_stable_comm <-plot_tdc_mat(garch_communication_stable_wide, "TDC for the Communication Services Sector (Stable Period)",tickers =  communication_tickers, percentile = 0.05)
-tdc_pan_comm <-plot_tdc_mat(garch_communication_pandemic_wide, "TDC for the Communication Services Sector (Pandemic Period)",tickers =  communication_tickers, percentile = 0.05)
+tdc_stable_comm <-plot_tdc_mat(garch_communication_stable_wide, "TDC for the Communication Services Sector (Stable Period)", " ",tickers =  communication_tickers, percentile = 0.05)
+tdc_pan_comm <-plot_tdc_mat(garch_communication_pandemic_wide, "TDC for the Communication Services Sector (Pandemic Period)", " ",tickers =  communication_tickers, percentile = 0.05)
 
-
-ggsave("tdc_stable_comm.png", plot = tdc_stable_comm, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves TDC (stable period)
-ggsave("tdc_pan_comm.png", plot = tdc_pan_comm, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves TDC (pandemic period)
 
 
 ## Consumer Staples TDC ##
-tdc_stable_con <-plot_tdc_mat(garch_staples_stable_wide, "TDC for the Consumer Staples Sector (Stable Period)",tickers =  staples_tickers, percentile = 0.05)
-tdc_pan_con <-plot_tdc_mat(garch_staples_pandemic_wide, "TDC for the Consumer Staples Sector (Pandemic Period)",tickers = staples_tickers, percentile = 0.05)
-
-ggsave("tdc_stable_con.png", plot = tdc_stable_con, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves TDC (stable period)
-ggsave("tdc_pan_con.png", plot = tdc_pan_con, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves TDC (pandemic period)
+tdc_stable_con <-plot_tdc_mat(garch_staples_stable_wide, "TDC for the Consumer Staples Sector (Stable Period)", " ", tickers =  staples_tickers, percentile = 0.05)
+tdc_pan_con <-plot_tdc_mat(garch_staples_pandemic_wide, "TDC for the Consumer Staples Sector (Pandemic Period)", " ", tickers = staples_tickers, percentile = 0.05)
 
 
 
 ## Consumer Discretionary TDC ##
-tdc_stable_dis <-plot_tdc_mat(garch_discretionary_stable_wide, "TDC for the Consumer Discretionary Sector (Stable Period)",tickers =  discretionary_tickers, percentile = 0.05)
-tdc_pan_dis <-plot_tdc_mat(garch_discretionary_pandemic_wide, "TDC for the Consumer Discretionary Sector (Pandemic Period)",tickers =  discretionary_tickers, percentile = 0.05)
+tdc_stable_dis <-plot_tdc_mat(garch_discretionary_stable_wide, "TDC for the Consumer Discretionary Sector (Stable Period)", " ",tickers =  discretionary_tickers, percentile = 0.05)
+tdc_pan_dis <-plot_tdc_mat(garch_discretionary_pandemic_wide, "TDC for the Consumer Discretionary Sector (Pandemic Period)", " ", tickers =  discretionary_tickers, percentile = 0.05)
 
 
-ggsave("tdc_stable_dis.png", plot = tdc_stable_dis, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves TDC (stable period)
-ggsave("tdc_pan_dis.png", plot = tdc_pan_dis, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves TDC (pandemic period)
+
+```
+
+***Cowplot Mutual Information***
+```{r}
+
+
+# Outputting the all of the plots for the communication services sector
+mi_stable_comm <- plot_mutual_information_matrix(
+  garch_communication_stable_wide,
+  "                   Stable Period",
+  "Communication Services", 
+  communication_tickers
+)
+
+# Extract a common legend from one plot (assuming all share the same legend)
+my_legend <- ggpubr::get_legend(mi_stable_comm, position = NULL)
+print(legend)
+
+mi_stable_comm <- mi_stable_comm + theme(legend.position = "none")
+
+mi_pan_comm <- plot_mutual_information_matrix(
+  garch_communication_pandemic_wide,
+  "               Pandemic Period",  
+  "", 
+  communication_tickers
+) + theme(legend.position = "none")
+
+
+comm_row <- plot_grid(
+  mi_stable_comm, mi_pan_comm, nrow = 1
+)
+
+
+mi_stable_dis <- plot_mutual_information_matrix(
+  garch_discretionary_stable_wide, 
+  "",
+  "Consumer Discretionary", 
+  discretionary_tickers
+) + theme(legend.position = "none")
+
+mi_pan_dis <- plot_mutual_information_matrix(
+  garch_discretionary_pandemic_wide, 
+  "", 
+  "",
+  discretionary_tickers
+) + theme(legend.position = "none")
+
+dis_row <- plot_grid(
+  mi_stable_dis, mi_pan_dis, nrow = 1
+)
+
+mi_stable_con <- plot_mutual_information_matrix(
+  garch_staples_stable_wide, 
+  "",
+  "Consumer Staples", 
+  staples_tickers
+) + theme(legend.position = "none")
+
+mi_pan_con <- plot_mutual_information_matrix(
+  garch_staples_pandemic_wide, 
+  "",
+  "",
+  staples_tickers
+) + theme(legend.position = "none")
+
+con_row <- plot_grid(
+  mi_stable_con, mi_pan_con, nrow = 1
+)
+
+
+main_title <- ggdraw() 
+
+
+combined_plot <-plot_grid(
+  main_title,
+  comm_row, dis_row, con_row, my_legend,
+  nrow = 5,
+  rel_heights = c(0.05, 1, 1, 1, 0.1)
+)
+
+
+save_plot("combined_plot_mi.png", 
+          combined_plot, 
+          base_width = 20,   # in inches
+          base_height = 30,  # in inches
+          dpi = 400)
+
+```
+
+
+***Cowplot Spearman Correlation***
+```{r}
+
+
+# Outputting the all of the plots for the communication services sector
+Spearman_stable_comm <- plot_spearman_correlation_ggplot(
+  garch_communication_stable_wide,
+  "                     Stable Period",
+  "Communication Services", 
+  communication_tickers
+)
+
+# Extract a common legend from one plot (assuming all share the same legend)
+my_legend <- ggpubr::get_legend(Spearman_stable_comm, position = NULL)
+print(legend)
+
+Spearman_stable_comm <- Spearman_stable_comm + theme(legend.position = "none")
+
+Spearman_pan_comm <- plot_spearman_correlation_ggplot(
+  garch_communication_pandemic_wide,
+  "                        Pandemic Period",  
+  "", 
+  communication_tickers
+) + theme(legend.position = "none")
+
+
+comm_row <- plot_grid(
+  Spearman_stable_comm, Spearman_pan_comm, nrow = 1
+)
+
+
+Spearman_stable_dis <- plot_spearman_correlation_ggplot(
+  garch_discretionary_stable_wide, 
+  "",
+  "Consumer Discretionary", 
+  discretionary_tickers
+) + theme(legend.position = "none")
+
+Spearman_pan_dis <- plot_spearman_correlation_ggplot(
+  garch_discretionary_pandemic_wide, 
+  "", 
+  "",
+  discretionary_tickers
+) + theme(legend.position = "none")
+
+dis_row <- plot_grid(
+  Spearman_stable_dis, Spearman_pan_dis, nrow = 1
+)
+
+Spearman_stable_con <- plot_spearman_correlation_ggplot(
+  garch_staples_stable_wide, 
+  "",
+  "Consumer Staples", 
+  staples_tickers
+) + theme(legend.position = "none")
+
+Spearman_pan_con <- plot_spearman_correlation_ggplot(
+  garch_staples_pandemic_wide, 
+  "",
+  "",
+  staples_tickers
+) + theme(legend.position = "none")
+
+con_row <- plot_grid(
+  Spearman_stable_con, Spearman_pan_con, nrow = 1
+)
+
+
+main_title <- ggdraw() 
+
+
+combined_plot <-plot_grid(
+  main_title,
+  comm_row, dis_row, con_row, my_legend,
+  nrow = 5,
+  rel_heights = c(0.05, 1, 1, 1, 0.1)
+)
+
+
+save_plot("combined_plot.png", 
+          combined_plot, 
+          base_width = 20,   # in inches
+          base_height = 30,  # in inches
+          dpi = 400)
+
 
 ```
 
 
 
 
+***Cowplot TDC***
+```{r}
+# Outputting the all of the plots for the communication services sector
+tdc_stable_comm <- plot_tdc_mat(
+  garch_communication_stable_wide,
+  "                   Stable Period",
+  "Communication Services", 
+  communication_tickers, 
+  percentile = 0.05
+)
+
+# Extract a common legend from one plot (assuming all share the same legend)
+my_legend <- ggpubr::get_legend(tdc_stable_comm, position = NULL)
+print(legend)
+
+tdc_stable_comm <- tdc_stable_comm + theme(legend.position = "none")
+
+tdc_pan_comm <- plot_tdc_mat(
+  garch_communication_pandemic_wide,
+  "               Pandemic Period",  
+  "", 
+  tickers = communication_tickers, 
+  percentile = 0.05
+) + theme(legend.position = "none")
+
+
+comm_row <- plot_grid(
+  tdc_stable_comm, tdc_pan_comm, nrow = 1
+)
+
+
+tdc_stable_dis <- plot_tdc_mat(
+  garch_discretionary_stable_wide, 
+  "",
+  "Consumer Discretionary", 
+ tickers = discretionary_tickers, 
+  percentile = 0.05
+) + theme(legend.position = "none")
+
+tdc_pan_dis <- plot_tdc_mat(
+  garch_discretionary_pandemic_wide, 
+  "", 
+  "",
+  tickers = discretionary_tickers,
+  percentile = 0.05
+) + theme(legend.position = "none")
+
+dis_row <- plot_grid(
+  tdc_stable_dis, tdc_pan_dis, nrow = 1
+)
+
+tdc_stable_con <- plot_tdc_mat(
+  garch_staples_stable_wide, 
+  "",
+  "Consumer Staples", 
+ tickers = staples_tickers, 
+  percentile = 0.05
+) + theme(legend.position = "none")
+
+tdc_pan_con <- plot_tdc_mat(
+  garch_staples_pandemic_wide, 
+  "",
+  "",
+ tickers = staples_tickers, 
+  percentile = 0.05
+) + theme(legend.position = "none")
+
+con_row <- plot_grid(
+  tdc_stable_con, tdc_pan_con, nrow = 1
+)
+
+
+main_title <- ggdraw()
+
+combined_plot <-plot_grid(
+  main_title,
+  comm_row, dis_row, con_row, my_legend,
+  nrow = 5,
+  rel_heights = c(0.05, 1, 1, 1, 0.1)
+)
+
+
+save_plot("combined_plot_tdc.png", 
+          combined_plot, 
+          base_width = 20,   # in inches
+          base_height = 30,  # in inches
+          dpi = 400)
+
+```
+
+
+
 ***These functions are to plot all sectors***
 ```{r}
-# Helper: reshape matrix after removing upper triangle (including diagonal)
-reshape_for_ggplot_lower_triangle <- function(mat, names) {
-  # Remove upper triangle including the diagonal
-  mat[upper.tri(mat, diag = TRUE)] <- NA
+
+
+# Load necessary libraries
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(tibble)
+library(viridis)
+
+# Revised helper: Reshape a square matrix into a long data frame for ggplot2,
+# retaining only the strictly lower triangle (optionally excluding the diagonal).
+reshape_for_ggplot_lower_triangle <- function(mat, ticker_names, remove_diagonal = TRUE) {
+  # Ensure the matrix has the ticker names both as row and column names.
+  rownames(mat) <- ticker_names
+  colnames(mat) <- ticker_names
   
-  as.data.frame(mat) %>%
-    rownames_to_column(var = "Var1") %>%
-    pivot_longer(-Var1, names_to = "Var2", values_to = "value") %>%
-    drop_na() %>%
+  # Convert the matrix to a long data frame.
+  df <- as.data.frame(mat) %>%
+    tibble::rownames_to_column("row_name") %>%
+    pivot_longer(
+      cols = -row_name,
+      names_to = "col_name",
+      values_to = "value"
+    ) %>%
     mutate(
-      Var1 = factor(Var1, levels = names, ordered = TRUE),
-      Var2 = factor(Var2, levels = names, ordered = TRUE)
+      # Save numeric indices so that we know where each ticker is on the axes.
+      row_idx = match(row_name, ticker_names),
+      col_idx = match(col_name, ticker_names)
     )
+  
+  # For the lower triangle, keep rows where row index > column index.
+  if (remove_diagonal) {
+    df <- df %>% filter(row_idx > col_idx)
+  } else {
+    df <- df %>% filter(row_idx >= col_idx)
+  }
+  
+  return(df)
 }
 
-# Function to plot Spearman Correlation (Lower Triangle with Vertical Separators)
+# Function to plot Spearman Correlation (lower triangle with vertical separators)
 plot_spearman_correlation_ggplot_all_sector <- function(wide_data, title, tickers) {
-  # Calculate Spearman correlation matrix
+  # Calculate the Spearman correlation matrix.
   spearman_corr <- cor(wide_data, method = "spearman", use = "pairwise.complete.obs")
   
-  # Remove upper triangle and reshape for ggplot
-  corr_data <- reshape_for_ggplot_lower_triangle(spearman_corr, tickers)
+  # Reshape the correlation matrix.
+  corr_data <- reshape_for_ggplot_lower_triangle(spearman_corr, tickers, remove_diagonal = TRUE)
   
-  # Number of tickers
   n <- length(tickers)
   
-  # Create vertical separator segments.
-  # We want a segment at x = 12.5, 24.5, ... 
-  # and we want to clip the segment so it does not exceed the available data in the lower triangle.
-  # On our plot (with tile centers at 1,2,...,n), the lower triangle is bounded by the diagonal (y = x - 0.5).
-  # So for a vertical line at x = k + 0.5, we set y_max = (k + 0.5) - 0.5 = k.
-  sep_positions <- seq(12.5, n - 0.5, by = 12)
+  # Define vertical separator positions.
   vertical_lines <- tibble(
-    x = sep_positions,
-    ymin = 0.5,
-    ymax = sep_positions - 0.5  # so, for x = 12.5, ymax = 12; for x = 24.5, ymax = 24, etc.
+    x = seq(12.5, n - 0.5, by = 12)
   )
   
-  ggplot(corr_data, aes(x = as.numeric(Var1), y = as.numeric(Var2), fill = value)) +
+  ggplot(corr_data, aes(x = col_idx, y = row_idx, fill = value)) +
     geom_tile(color = "white", size = 0.1) +
-    # Draw the vertical segments
-    geom_segment(data = vertical_lines, 
-                 aes(x = x, xend = x, y = ymin, yend = ymax),
-                 inherit.aes = FALSE, 
-                 color = "black", size = 0.8) +
-    scale_fill_viridis_c(option = "plasma", limits = c(-1, 1), name = "Spearman\nCorrelation") +
-    # Convert back to custom axis: positions 1:n with labels = tickers
+    # Draw vertical separators with swapped endpoints.
+    geom_segment(
+      data = vertical_lines,
+      aes(x = x, xend = x, y = 0, yend = n + 0.5),
+      inherit.aes = FALSE,
+      color = "black", size = 0.8
+    ) +
+    scale_fill_viridis_c(option = "plasma", limits = c(-1, 1), name = "") +
     scale_x_continuous(breaks = 1:n, labels = tickers) +
-    scale_y_continuous(breaks = 1:n, labels = tickers) +
+    scale_y_reverse(breaks = 1:n, labels = tickers) +  # Reverse y-axis so row 1 is at the top.
+    coord_fixed() +
     theme_classic() +
     theme(
-      axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = 6, face = "bold"),
-      axis.text.y = element_text(size = 6, face = "bold"),
-      axis.title = element_blank(),
-      panel.grid = element_blank(),
-      plot.title = element_text(size = 10, face = "bold", hjust = 0.5),
+      axis.text.x  = element_text(angle = 45, vjust = 1, hjust = 1, size = 8, face = "bold"),
+      axis.text.y  = element_text(size = 8, face = "bold"),
+      axis.title   = element_blank(),
+      panel.grid   = element_blank(),
+      plot.title   = element_text(size = 25, hjust = 0.5),
       legend.title = element_text(size = 10),
-      legend.text = element_text(size = 6),
+      legend.text  = element_text(size = 6),
       legend.key.height = unit(0.3, "cm"),
-      legend.key.width = unit(0.15, "cm"),
-      legend.position = "right",
-      plot.margin = margin(0, 0, 0, 0)
+      legend.key.width  = unit(0.15, "cm"),
+      legend.position   = "bottom",
+      plot.margin       = margin(0, 0, 0, 0)
     ) +
+    guides(fill = guide_colorbar(barwidth = 25, barheight = 1)) +
     labs(title = title)
 }
 
-# Function to plot Tail Dependence Coefficient (Lower Triangle with Vertical Separators)
+# Function to plot Tail Dependence Coefficient (TDC) matrix (lower triangle with vertical separators)
 plot_tdc_mat_all_sector <- function(data, title, tickers, percentile = 0.05,
                                     families = NA, rotations = TRUE) {
-  # Compute the TDC matrix (your compute_tdc_matrix function should be defined elsewhere)
+  # Compute the TDC matrix.
   tdc_mat <- compute_tdc_matrix(data, percentile = percentile,
                                 families = families, rotations = rotations)
   
-  # Remove upper triangle (including diagonal)
-  tdc_mat[upper.tri(tdc_mat, diag = TRUE)] <- NA
-  
-  # Reshape the matrix into a long-format data frame using the helper function
-  tdc_long <- reshape_for_ggplot_lower_triangle(tdc_mat, tickers)
+  # Reshape the TDC matrix.
+  tdc_data <- reshape_for_ggplot_lower_triangle(tdc_mat, tickers, remove_diagonal = TRUE)
   
   n <- length(tickers)
-  sep_positions <- seq(12.5, n - 0.5, by = 12)
+  
   vertical_lines <- tibble(
-    x = sep_positions,
-    ymin = 0.5,
-    ymax = sep_positions - 0.5
+    x = seq(12.5, n - 0.5, by = 12)
   )
   
-  ggplot(tdc_long, aes(x = as.numeric(Var1), y = as.numeric(Var2), fill = value)) +
+  ggplot(tdc_data, aes(x = col_idx, y = row_idx, fill = value)) +
     geom_tile(color = "white", size = 0.1) +
-    geom_segment(data = vertical_lines, 
-                 aes(x = x, xend = x, y = ymin, yend = ymax),
-                 inherit.aes = FALSE,
-                 color = "black", size = 0.8) +
-    scale_fill_viridis_c(option = "plasma", limits = c(0, 1), name = "TDC") +
+    geom_segment(
+      data = vertical_lines,
+      aes(x = x, xend = x, y = 0, yend = n + 0.5),
+      inherit.aes = FALSE,
+      color = "black", size = 0.8
+    ) +
+    scale_fill_viridis_c(option = "plasma", limits = c(0, 1), name = "") +
     scale_x_continuous(breaks = 1:n, labels = tickers) +
-    scale_y_continuous(breaks = 1:n, labels = tickers) +
+    scale_y_reverse(breaks = 1:n, labels = tickers) +
+    coord_fixed() +
     theme_classic() +
     theme(
-      axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = 6, face = "bold"),
-      axis.text.y = element_text(size = 6, face = "bold"),
-      axis.title = element_blank(),
-      panel.grid = element_blank(),
-      plot.title = element_text(size = 10, face = "bold", hjust = 0.5),
+      axis.text.x  = element_text(angle = 45, vjust = 1, hjust = 1, size = 8, face = "bold"),
+      axis.text.y  = element_text(size = 8, face = "bold"),
+      axis.title   = element_blank(),
+      panel.grid   = element_blank(),
+      plot.title   = element_text(size = 25, hjust = 0.5),
       legend.title = element_text(size = 10),
-      legend.text = element_text(size = 6),
+      legend.text  = element_text(size = 6),
       legend.key.height = unit(0.3, "cm"),
-      legend.key.width = unit(0.15, "cm"),
-      legend.position = "right",
-      plot.margin = margin(0, 0, 0, 0)
+      legend.key.width  = unit(0.15, "cm"),
+      legend.position   = "bottom",
+      plot.margin       = margin(0, 0, 0, 0)
     ) +
+    guides(fill = guide_colorbar(barwidth = 25, barheight = 1)) +
     labs(title = title)
 }
+
+# returns a list with the normalized matrix and the max MI
+compute_normalized_mi <- function(data) {
+  # raw MI matrix
+  mi_mat <- compute_mutual_information_matrix(data)
+  # highest *pairwise* MI (exclude diagonal)
+  max_mi <- max(mi_mat[lower.tri(mi_mat)], na.rm = TRUE)
+  # normalize everything to [0,1]
+  mi_mat_norm <- mi_mat / max_mi
+  list(
+    mi_mat = mi_mat_norm,
+    max_mi = max_mi
+  )
+}
+
+
+# Function to plot Mutual Information (MI) matrix (lower triangle with vertical separators)
+plot_mi_mat_all_sector <- function(data, title, tickers, ...) {
+    # 1. raw MI
+# 1. get normalized MI + record raw max
+  res      <- compute_normalized_mi(data)
+  mi_mat   <- res$mi_mat       # already scaled to [0,1]
+  max_mi   <- res$max_mi       # raw maximum
+  
+  # 4. reshape only lower triangle
+  mi_data <- reshape_for_ggplot_lower_triangle(mi_mat, tickers, remove_diagonal = TRUE)
+  
+  n <- length(tickers)
+  
+  vertical_lines <- tibble(
+    x = seq(12.5, n - 0.5, by = 12)
+  )
+  
+  # Set the maximum MI value for the fill scale.
+  max_mi <- max(mi_data$value, na.rm = TRUE)
+  
+  ggplot(mi_data, aes(x = col_idx, y = row_idx, fill = value)) +
+    geom_tile(color = "white", size = 0.1) +
+    geom_segment(
+      data = vertical_lines,
+      aes(x = x, xend = x, y = 0, yend = n + 0.5),
+      inherit.aes = FALSE,
+      color = "black", size = 0.8
+    ) +
+    scale_fill_viridis_c(option = "plasma", limits = c(0, 1), name = "") +
+    scale_x_continuous(breaks = 1:n, labels = tickers) +
+    scale_y_reverse(breaks = 1:n, labels = tickers) +
+    coord_fixed() +
+    theme_classic() +
+    theme(
+      axis.text.x  = element_text(angle = 45, vjust = 1, hjust = 1, size = 8, face = "bold"),
+      axis.text.y  = element_text(size = 8, face = "bold"),
+      axis.title   = element_blank(),
+      panel.grid   = element_blank(),
+      plot.title   = element_text(size = 25, hjust = 0.5),
+      legend.title = element_text(size = 10),
+      legend.text  = element_text(size = 6),
+      legend.key.height = unit(0.3, "cm"),
+      legend.key.width  = unit(0.15, "cm"),
+      legend.position   = "bottom",
+      plot.margin       = margin(0, 0, 0, 0)
+    ) +
+    guides(fill = guide_colorbar(barwidth = 25, barheight = 1)) +
+    labs(title = title)
+}
+
+
 
 
 
@@ -1246,23 +1466,263 @@ all_tickers <- c(
 all_spearman_stable <-plot_spearman_correlation_ggplot_all_sector(all_sector_wide_stable, "Spearman Correlation Across All Sectors (Stable Period)", all_tickers)
 all_spearman_pan <-plot_spearman_correlation_ggplot_all_sector(all_sector_wide_pandemic, "Spearman Correlation Across All Sectors (Pandemic Period)", all_tickers)
 
-ggsave("all_spearman_stable.png", plot = all_spearman_stable, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves Spearman Correlation (stable period)
 
-ggsave("all_spearman_pan.png", plot = all_spearman_pan, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves Spearman Correlation (pandemic period)
 
-plot_mutual_information_matrix(all_sector_wide_stable, "Mutual Information Across All Sectors (Stable Period)", all_tickers)
-plot_mutual_information_matrix(all_sector_wide_pandemic, "Mutual Information Across All Sectors (Pandemic Period)", all_tickers)
+all_mi_stable <-plot_mi_mat_all_sector(all_sector_wide_stable, "Mutual Information Across All Sectors (Stable Period)", all_tickers)
+all_mi_pan <-plot_mi_mat_all_sector(all_sector_wide_pandemic, "Mutual Information Across All Sectors (Pandemic Period)", all_tickers)
 
 # For the future, the plot mutual information is calling the reshape function that filters for the lower half of the triangle
+
+
 
 all_tdc_stable <-plot_tdc_mat_all_sector(all_sector_wide_stable, "TDC Across All Sectors (Stable Period)",tickers = all_tickers, percentile = 0.05)
 all_tdc_pan <-plot_tdc_mat_all_sector(all_sector_wide_pandemic, "TDC Across All Sectors (Pandemic Period)",tickers = all_tickers, percentile = 0.05)
 
 
-ggsave("all_tdc_stable.png", plot = all_tdc_stable, width = 5120, height = 2880,units = 'px', dpi=400 )# Saves TDC (stable period)
 
-ggsave("all_tdc_pan.png", plot = all_tdc_pan, width = 5120, height = 2880,units = 'px',  dpi = 400) # Saves TDC (pandemic period)
 
 
 
 ```
+
+
+***Combining all cross sector plots***
+```{r}
+
+
+
+# Outputting the all of the plots for the communication services sector
+all_spearman_stable <- plot_spearman_correlation_ggplot_all_sector(
+  all_sector_wide_stable,
+  "Stable Period",
+  all_tickers
+)
+
+# Extract a common legend from one plot (assuming all share the same legend)
+my_legend <- ggpubr::get_legend(Spearman_stable_comm, position = NULL)
+print(legend)
+
+all_spearman_pan <- all_spearman_pan + theme(legend.position = "none")
+
+all_spearman_pan <- plot_spearman_correlation_ggplot_all_sector(
+  all_sector_wide_pandemic,
+  "Pandemic Period",  
+  all_tickers
+) + theme(legend.position = "none")
+
+
+comm_row <- plot_grid(
+  all_spearman_stable, all_spearman_pan, nrow = 1
+)
+
+
+
+
+main_title <- ggdraw() + 
+  draw_label("Spearman Correlation All Sectors ", fontface = "bold", size = 30, x = 0.35, hjust = 0)
+
+combined_plot <-plot_grid(
+  main_title,
+  comm_row, my_legend,
+  nrow = 3,
+  rel_heights = c(0.05, 1, 1, 1, 0.1)
+)
+save_plot("all_sector_mi_plot.png", 
+          combined_plot, 
+          base_width = 25.2,   # in inches
+          base_height = 14.8,  # in inches
+          dpi = 300)
+
+
+#################################################
+
+library(patchwork)
+
+
+# remove legend from the pandemic plot
+p1 <- all_spearman_stable
+p2 <- all_spearman_pan + theme(legend.position = "none")
+
+combined_plot <-
+  (p1 + p2) +
+    plot_layout(ncol = 2, guides = "collect") +
+  plot_annotation(
+    title = "Spearman Correlation in All Sectors",
+    theme = theme(
+      plot.title        = element_text(size = 30, face = "bold", hjust = 0.5),
+      plot.title.position = "plot"
+    )
+  ) &
+  theme(legend.position = "bottom")
+
+ggsave(
+  filename = "all_sector_spearman_plot2.png",
+  plot     = combined_plot,
+  width    = 25.2,
+  height   = 14.8,
+  dpi      = 300
+)
+
+
+#############################################
+
+
+
+
+# Outputting the all of the plots for the communication services sector
+all_mi_stable <- plot_mi_mat_all_sector(
+  all_sector_wide_stable,
+  "Stable Period",
+  all_tickers
+)
+
+# Extract a common legend from one plot (assuming all share the same legend)
+my_legend <- ggpubr::get_legend(all_mi_stable, position = NULL)
+print(legend)
+
+all_mi_pan <- all_mi_pan + theme(legend.position = "none")
+
+all_mi_pan <- plot_mi_mat_all_sector(
+  all_sector_wide_pandemic,
+  "Pandemic Period",  
+  all_tickers
+) + theme(legend.position = "none")
+
+
+comm_row <- plot_grid(
+  all_mi_stable, all_mi_pan, nrow = 1
+)
+
+
+
+
+main_title <- ggdraw() + 
+  draw_label("Mutual Information in All Sectors ", fontface = "bold", size = 30, x = 0.35, hjust = 0)
+
+combined_plot <-plot_grid(
+  main_title,
+  comm_row, my_legend,
+  nrow = 3,
+  rel_heights = c(0.05, 1, 1, 1, 0.1)
+)
+
+
+save_plot("all_sector_mi_plot.png", 
+          combined_plot, 
+          base_width = 25.2,   # in inches
+          base_height = 14.8,  # in inches
+          dpi = 300)
+
+#################################################
+
+library(patchwork)
+
+# remove legend from the pandemic plot
+p1 <- all_mi_stable
+p2 <- all_mi_pan + theme(legend.position = "none")
+
+combined_plot <-
+  (p1 + p2) +
+    plot_layout(ncol = 2, guides = "collect") +
+  plot_annotation(
+    title = "Mutual Information in All Sectors",
+    theme = theme(
+      plot.title        = element_text(size = 30, face = "bold", hjust = 0.5),
+      plot.title.position = "plot"
+    )
+  ) &
+  theme(legend.position = "bottom")
+
+ggsave(
+  filename = "all_sector_mi_plot.png",
+  plot     = combined_plot,
+  width    = 25.2,
+  height   = 14.8,
+  dpi      = 300
+)
+
+
+
+
+
+
+```
+
+
+
+```{r}
+
+# Outputting the all of the plots for the communication services sector
+all_tdc_stable <- plot_tdc_mat_all_sector(
+  all_sector_wide_stable,
+  "Stable Period",
+  all_tickers
+)
+
+# Extract a common legend from one plot (assuming all share the same legend)
+my_legend <- ggpubr::get_legend(all_tdc_stable, position = NULL)
+print(legend)
+
+all_tdc_pan <- all_tdc_pan + theme(legend.position = "none")
+
+all_tdc_pan <- plot_tdc_mat_all_sector(
+  all_sector_wide_pandemic,
+  "Pandemic Period",  
+  all_tickers
+) + theme(legend.position = "none")
+
+
+comm_row <- plot_grid(
+  all_tdc_stable, all_tdc_pan, nrow = 1
+)
+
+
+
+
+main_title <- ggdraw() + 
+  draw_label("TDC in All Sectors ", fontface = "bold", size = 30, x = 0.35, hjust = 0)
+
+combined_plot <-plot_grid(
+  main_title,
+  comm_row, my_legend,
+  nrow = 3,
+  rel_heights = c(0.05, 1, 1, 1, 0.1)
+)
+
+
+save_plot("all_sector_tdc_plot.png", 
+          combined_plot, 
+          base_width = 25.2,   # in inches
+          base_height = 14.8,  # in inches
+          dpi = 300)
+
+#################################################
+
+library(patchwork)
+
+# remove legend from the pandemic plot
+p1 <- all_tdc_stable
+p2 <- all_tdc_pan + theme(legend.position = "none")
+
+combined_plot <-
+  (p1 + p2) +
+    plot_layout(ncol = 2, guides = "collect") +
+  plot_annotation(
+    title = "TDC in All Sectors",
+    theme = theme(
+      plot.title        = element_text(size = 30, face = "bold", hjust = 0.5),
+      plot.title.position = "plot"
+    )
+  ) &
+  theme(legend.position = "bottom")
+
+ggsave(
+  filename = "all_sector_tdc_plot.png",
+  plot     = combined_plot,
+  width    = 25.2,
+  height   = 14.8,
+  dpi      = 300
+)
+
+```
+
